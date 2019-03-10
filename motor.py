@@ -1,5 +1,8 @@
+from collections import Counter
 from logger import log
+from printer import Printer
 import time
+import datetime
 
 
 class Motor:
@@ -8,8 +11,8 @@ class Motor:
         self.initialize_email_engine()
         self.connect()
        
-        total, res = self.analyzer()
-        log.info('{} on {} emails received'.format(len(res), len(total)))
+        self.summarize()
+
         self.logout()
 
     def parse_config(self, config):
@@ -22,9 +25,16 @@ class Motor:
         self.ssl = config['ssl']
         self.email_engine_class = config['email_access_class']
 
-    def analyzer(self):
-        #return self.email.getalltry()
-        return self.email.get_all_emails()
+    def summarize(self):
+        ids, raw_data = self.email.get_all_emails()
+        log.info('{} on {} emails received'.format(len(raw_data), len(ids)))
+        log.info('Below is the top 10 senders')
+        data = self.count_by(raw_data, 'From')
+        Printer.table_summary(data)
+       
+    def count_by(self, raw_data, by):
+        out = Counter(msg[by] for msg in raw_data)
+        return out
 
     def initialize_email_engine(self):
         self.email = self.email_engine_class()

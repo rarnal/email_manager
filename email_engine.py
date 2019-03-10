@@ -8,6 +8,7 @@ import email.header
 import email.utils
 from concurrent import futures
 from collections import deque
+import datetime
 # import smtplib
 
 import ssl
@@ -16,59 +17,6 @@ import sys
 
 from progressBar import ProgressBar
 from logger import log
-
-
-class Email:
-    def __init__(self, data, formatting):
-        self.read_email(data, formatting) 
-
-    def read_email(self, data, formatting):
-
-        raw_email = self.parse_email(data, formatting)
-
-        self.content = self.get_email(raw_email)
-
-        sender_info = self.get_sender(raw_email)
-        self.sender_name = sender_info[0]
-        self.sender_email = sender_info[1]
-
-    @staticmethod
-    def parse_email(data, formatting):
-
-        if formatting == '(RFC822)':
-            raw_email = email.parser \
-                             .BytesParser(policy=email.policy.default) \
-                             .parsebytes(data)
-        elif formatting == '(ENVELOPE)':
-            raw_email = email.parser \
-                             .BytesHeaderParser(policy=email.policy.default) \
-                             .parsebytes(data)
-            print(type(data))
-            raw_email = email.header.decode_header(data)
-        print(raw_email)
-        return raw_email
-
-    @staticmethod
-    def get_sender(raw_email):
-        return email.utils.parseaddr(raw_email['From'])
-
-    @staticmethod
-    def get_email(raw_email):
-        out = ""
-        email_type = raw_email.get_content_maintype()
-        if email_type == 'text':
-            out = raw_email.get_payload()
-        elif email_type == 'multipart':
-            for part in raw_email.get_payload():
-                if part.get_content_type() == 'text/plain':
-                    out += part.get_payload()
-                elif 'image' in part.get_content_type():
-                    out += """\n\n***IMAGE***\n\n"""
-        return out
-
-    def __str__(self):
-        return self.content
-
 
 
 class IMAP_SSL:
@@ -82,6 +30,7 @@ class IMAP_SSL:
         self.password = password
 
         self.max_connexions = 10
+        self.max_workers = 20
         self.conns = self._create_conn(login=True, nb=self.max_connexions)
 
     def _create_conn(self, login=True, nb=1):
@@ -134,47 +83,50 @@ class IMAP_SSL:
         return self._fetch_emails(ids, '(RFC822)')
 
     def get_all_emails(self):
-        _, res = self.conns[0].uid('search', 'FROM', 'arnal.romain@gmail.com')
+        _, res = self.conns[0].uid('search', None, 'ALL')
         ids = res[0].split()
         log.info("Getting ready to download {} emails...".format(len(ids)))
-        synchrone = len(ids) < 10
-        return ids, self._fetch_emails(ids, '(RFC822.HEADER)', synchrone)
+        return ids, self._fetch_emails(ids, '(RFC822.HEADER)')
 
-    def _fetch_emails(self, ids, formatting, synchrone=False):
+    def _fetch_emails(self, ids, formatting):
         if isinstance(ids, str):
             ids = [ids]
+        raw_emails = self._download_emails(ids, formatting)
+        parsed_emails = self._parse_emails(raw_emails)
+        return parsed_emails
 
+    def _download_emails(self, ids, formatting):
         out = []
+        progress_bar = ProgressBar(len(ids), "Downloading emails...")
         with futures.ThreadPoolExecutor(self.max_connexions-2) as executor:
-            downloaded = []
             todo = (
                 executor.submit(self._fetch_one_email, id, formatting)
                 for id in ids
             )
-
-            progress_bar = ProgressBar(len(ids), "Downloading emails...")
             for ready in futures.as_completed(todo):
                 try:
-                    downloaded.append(ready.result())
+                    out.append(ready.result())
                 except Exception as error:
                     log.error("One email was not correctly downloaded: "
-                              "{}{}\nContinuing downloading..."
-                              .format(error, ' '*50))
+                              "{}{}".format(error, ' '*50))
                               # 50 spaces to remove the bar status
                 progress_bar += 1
+        return out
 
+    def _parse_emails(self, raw_emails):
+        out = []
+        progress_bar = ProgressBar(len(raw_emails), "Parsing emails...")
+        with futures.ThreadPoolExecutor(self.max_workers) as executor:
             todo = (
-                executor.submit(self.parse_email, id, res, formatting)
-                for id, res in downloaded
+                executor.submit(self._parse_email, id, res)
+                for id, res in raw_emails
             )
-            progress_bar = ProgressBar(len(ids), "Parsing emails...")
             for ready in futures.as_completed(todo):
                 try:
                     out.append(ready.result())
                 except Exception as error:
                     log.error("One email was not correctly parsed: "
                               "{}{}".format(error, ' '*50))
-                    pass
                 progress_bar += 1
         return out
 
@@ -185,9 +137,28 @@ class IMAP_SSL:
         self.conns.appendleft(conn)
         return res
 
-    def parse_email(self, id, raw_email, formatting):
+    def _parse_email(self, id, raw_email):
         msg = email.parser \
                    .BytesParser() \
                    .parsebytes(raw_email)
-        msg.id = id
+
+        msg = self._transform_parsed_email(id, msg)
         return msg
+    
+    def _transform_parsed_email(self, id, msg):
+        msg['id'] = id
+        
+        temp = email.utils.parseaddr(msg['From'])[1]
+        del msg['From']
+        msg['From'] = temp
+    
+        temp = email.utils.parsedate_to_datetime(msg['Date'])
+        del msg['Date']
+        msg['Date'] = temp
+        
+        return msg
+
+
+
+
+

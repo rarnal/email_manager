@@ -4,17 +4,17 @@ class Printer:
     def __init__(self):
         pass
 
-    def table_summary(self, data):
-        formatter = "{id:5d} | {sender:30} | {count:5} | {size:8}"
+    @staticmethod
+    def table_summary(data):
+        formatter = "{id:>5} | {count:>5} | {sender:40}"
         titles = formatter.format(id='id',
-                                  sender='sender',
-                                  count='count',
-                                  size='size')
-
+                                  sender='From',
+                                  count='count')
+        print()
         print(titles)
-        for row in data:
-            print(formatter.format(id=row['id'],
-                                   sender=row['sender'],
-                                   count=row['count'],
-                                   size=row['size']))
+        for i, (sender, total) in enumerate(data.most_common(10), 1):
+            print(formatter.format(id=i,
+                                   sender=sender,
+                                   count=total))
+        print()
         
