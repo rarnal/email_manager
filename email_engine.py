@@ -82,10 +82,12 @@ class IMAP_SSL:
         ids = res[0].split()
         return self._fetch_emails(ids, '(RFC822)')
 
+    def search_by_sender(self, email):
+        return self.search('FROM', email)
+
     def get_all_emails(self):
-        _, res = self.conns[0].uid('search', None, 'ALL')
+        _, res = self.search(None, 'ALL')
         ids = res[0].split()
-        log.info("Getting ready to download {} emails...".format(len(ids)))
         return ids, self._fetch_emails(ids, '(RFC822.HEADER)')
 
     def _fetch_emails(self, ids, formatting):
@@ -97,6 +99,7 @@ class IMAP_SSL:
 
     def _download_emails(self, ids, formatting):
         out = []
+        log.info("Processing {} emails...".format(len(ids)))
         progress_bar = ProgressBar(len(ids), "Downloading emails...")
         with futures.ThreadPoolExecutor(self.max_connexions-2) as executor:
             todo = (

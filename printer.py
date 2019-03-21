@@ -1,3 +1,6 @@
+import re
+
+import CONSTANTS
 
 
 class Printer:
@@ -17,4 +20,48 @@ class Printer:
                                    sender=sender,
                                    count=total))
         print()
+
+    @staticmethod
+    def main_menu(question, answers):
+        answer = None
+        print()
+
+        while answer not in answers:
+            if answer:
+                print("Incorrect input.\n"
+                      "Please give me the number of the chosen action\n")
+            print(question)
+            for id_ in answers:
+                print("({}) - {}"
+                      .format(id_, CONSTANTS.DESCRIPTION_ACTIONS[id_]))
+            print()
+            answer = input()
+            if answer.isdigit():
+                answer = int(answer)
+
+        return answer
+
+    @staticmethod
+    def ask_for_email(question):
+        answer = ''
+        pattern = "^[\w\d\-_\.]+[a-zA-Z]@[a-zA-Z][a-zA-Z\.\-]+\.[a-zA-Z]{2,}$"
+        
+        while not re.match(pattern, answer):
+            if answer:
+                print("This is not a valid email address\n")
+            print()
+            print(question)
+            answer = input()
+            print()
+
+        return answer
+            
+
+
+
+
+
+
+
+
         
