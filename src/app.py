@@ -3,24 +3,29 @@ import datetime
 
 from collections import Counter
 
-import CONSTANTS
-from logger import log
-from printer import Printer
+from src import CONSTANTS
+from src.logger import log
+from src.printer import Printer
 
 
 class Motor:
-   
-    def __init__(self, config):
+
+    def __init__(self, config, connections=10):
         self.last_search = None
         self.status = 'ON'
+        self._print = Printer()
+        self.max_open_connections = connections
 
         self._parse_config(config)
         self._initialize_email_engine()
         self._connect()
 
+
+    def run(self):
         self._define_actions()
         self.command_center()
-    
+
+
     def _define_actions(self):
         self.ACTIONS = {
             CONSTANTS.SUMMARY_ALL_EMAILS: self.summarize,
@@ -30,40 +35,51 @@ class Motor:
             CONSTANTS.DELETE_EMAILS: self.delete_emails,
             CONSTANTS.LOGOUT: self.logout,
         }
- 
+
+
     def command_center(self):
         while self.status == 'ON':
             question = "What action would you like to do ?"
-            action = Printer.main_menu(question, self.ACTIONS)
+            action = self._print.main_menu(question, self.ACTIONS)
             self.ACTIONS[action]()
 
+
     def summarize(self):
-        ids, raw_data = self.email.get_all_emails()
+        top = 10
 
-        log.info('{} on {} emails received'.format(len(raw_data), len(ids)))
-        log.info('Below is the top 10 senders')
+        data = self.email.get_all_emails()
 
-        data = self._group_emails_by(raw_data, 'From')
-        Printer.table_summary(data)
-       
-    def _group_emails_by(self, raw_data, by):
-        return Counter(msg[by] for msg in raw_data)
+        log.info('{} emails successfully downloaded'.format(len(data)))
+        log.info('Below is the top {} senders'.format(top))
+
+        if data:
+            self.last_search = self._print.summary_by_top_senders(data, top)
+
 
     def delete_emails():
         pass
 
+
     def get_emails_from(self):
         question = "Type in the sender's email address:"
-        email_address = Printer.ask_for_email(question)
-        emails = self.email.search_by_sender(email_address)
-        Printer.table_summary(emails)
-        self.last_search = emails
+        sender_email_address = self._print.ask_for_email(question)
+        emails_list = self.email.search_by_sender(sender_email_address)
+
+        if not emails_list:
+            log.info("No emails were retrieved")
+        else:
+            log.info("{} emails were retrieved".format(len(emails_list)))
+            self._print.display_emails(emails_list)
+            self.last_search = emails_list
+
 
     def get_summary_email_by_id(self, ids):
         return self.email.fetch_header_email(ids)
 
+
     def get_full_email_by_id(self, ids):
         return self.email.fetch_full_email(ids)
+
 
     def get_mailboxes(self):
         """
@@ -71,24 +87,30 @@ class Motor:
         """
         return self.email.get_mailboxes()
 
+
     def get_storage_info(self):
         return self.email.get_quota()
+
 
     def logout(self):
         self.email.logout()
         log.info("Connexion successfully closed !")
         self.status = 'OFF'
 
+
     def _connect(self):
         log.info("Logging in as {}...".format(self.email_address))
-        self.email.init_mail(self.host_name,
-                             self.port,
-                             self.email_address,
-                             self.password)
+        self.email.initialize(self.host_name,
+                              self.port,
+                              self.email_address,
+                              self.password,
+                              self.max_open_connections)
         log.info("Logged in !")
+
 
     def _initialize_email_engine(self):
         self.email = self.email_engine_class()
+
 
     def _parse_config(self, config):
         self.host_name = config['host']

@@ -1,5 +1,5 @@
 import yaml
-import email_engine
+from src import email_engine
 
 
 def get_config(source=None):

@@ -1,11 +1,12 @@
-import helpers
-import motor
+from src import helpers
+from src import app
 
 
 def main():
 
     config = helpers.get_config()
-    app = motor.Motor(config)
+    application = app.Motor(config)
+    application.run()
 
 
 
