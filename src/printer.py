@@ -13,7 +13,7 @@ class Printer:
     def display_emails(self, emails_list):
         template_body = "{email_id:>8} | {sender:>{size_email}} | {date:>{size_date}} | {subject:<}"
         template_head = "{email_id:>8} | {sender:^{size_email}} | {date:^{size_date}} | {subject:<}"
-       
+
         emails_list = helpers.sort_emails_by_date(emails_list)
 
         size_email = helpers.get_max_field_size(emails_list, 'From')
@@ -25,7 +25,7 @@ class Printer:
                                      subject="SUBJECT",
                                      size_email=size_email,
                                      size_date=size_date)
- 
+
         print()
         print(title)
         for email_msg in emails_list:
@@ -104,22 +104,11 @@ class Printer:
 
 
     @staticmethod
-    def main_menu(question, answers):
+    def main_menu(question):
         answer = None
         print()
-
-        while answer not in answers:
-            if answer:
-                print("Incorrect input.\n"
-                      "Please give me the number of the chosen action\n")
-            print(question)
-            for id_ in answers:
-                print("({}) - {}"
-                      .format(id_, CONSTANTS.DESCRIPTION_ACTIONS[id_]))
-            print()
-            answer = input()
-            if answer.isdigit():
-                answer = int(answer)
+        print(question)
+        answer = input()
 
         return answer
 

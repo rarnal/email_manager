@@ -1,5 +1,6 @@
 import time
 import datetime
+import argparse
 
 from collections import Counter
 
@@ -22,26 +23,96 @@ class Motor:
 
 
     def run(self):
-        self._define_actions()
+        self._parser()
         self.command_center()
 
 
-    def _define_actions(self):
-        self.ACTIONS = {
-            CONSTANTS.SUMMARY_ALL_EMAILS: self.summarize,
-            CONSTANTS.GET_ALL_BOXES: self.get_mailboxes,
-            CONSTANTS.GET_RECEIVED_FROM: self.get_emails_from,
-            CONSTANTS.GET_SENT_TO: self.get_emails_from,
-            CONSTANTS.DELETE_EMAILS: self.delete_emails,
-            CONSTANTS.LOGOUT: self.logout,
-        }
+    def _help_message(self):
+        template = "    {s:3} {l:15}        {h}\n"
+        msg = "Use one of the below options\n\n[options]\n"
+
+        for action in CONSTANTS.ACTIONS:
+            data = CONSTANTS.USAGES[action]
+            msg += template.format(s=data['args']['short'],
+                                   l=data['args']['long'],
+                                   h=data['kwargs']['help'])
+        return msg
+
+
+    def _parser(self):
+        self.parser = argparse.ArgumentParser(prog=CONSTANTS.PROGRAM_NAME,
+                                              usage=self._help_message(),
+                                              add_help=False)
+
+        excl = self.parser.add_mutually_exclusive_group(required=True)
+
+        excl.add_argument('-h', '--help', action="store_true")
+
+        for action in CONSTANTS.ACTIONS:
+            data = CONSTANTS.USAGES[action]
+            excl.add_argument(data['args']['short'],
+                              data['args']['long'],
+                              **data['kwargs'])
+
+        return True
+
+
+
+        excl.add_argument('-ts', '--top-senders',
+                          nargs='?', type=int,
+                          default=10,
+                          help=CONSTANTS.USAGES[CONSTANTS.TOP_SENDERS])
+
+        excl.add_argument('-b', '--boxes',
+                          action='store_true',
+                          help=CONSTANTS.USAGES[CONSTANTS.LIST_BOXES])
+
+        excl.add_argument('-f', '--from',
+                          nargs=1, type=str,
+                          help=CONSTANTS.USAGES[CONSTANTS.RECEIVED_FROM])
+
+        excl.add_argument('-t', '--to',
+                          nargs=1, type=str,
+                          help=CONSTANTS.USAGES[CONSTANTS.SENT_TO])
+
+        excl.add_argument('-r', '--read',
+                          nargs=1, type=int,
+                          help=CONSTANTS.USAGES[CONSTANTS.READ_EMAIL])
+
+        excl.add_argument('-di', '--delete-id',
+                          nargs='+', type=int,
+                          help=CONSTANTS.USAGES[CONSTANTS.DELETE_ID])
+
+        excl.add_argument('-df', '--delete-from',
+                          nargs=1, type=str,
+                          help=CONSTANTS.USAGES[CONSTANTS.DELETE_FROM])
+
+        excl.add_argument('-q', '--quit',
+                          action='store_true',
+                          help=CONSTANTS.USAGES[CONSTANTS.LOGOUT])
+
+
+    def parse_answer(self, answer):
+        try:
+            parsed = self.parser.parse_args(answer.split())
+        except SystemExit as e:
+            return False
+
+        for action in CONSTANTS.ACTIONS:
+            if parsed[action]:
+                print(action)
+
 
 
     def command_center(self):
         while self.status == 'ON':
-            question = "What action would you like to do ?"
-            action = self._print.main_menu(question, self.ACTIONS)
-            self.ACTIONS[action]()
+            question = ("-h or --help to get a list of different actions\n\n"
+                        "What action would you like to do ?")
+            answer = self._print.main_menu(question)
+
+            if answer:
+                self.parse_answer(answer)
+
 
 
     def summarize(self):
