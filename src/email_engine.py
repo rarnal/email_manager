@@ -111,16 +111,23 @@ class IMAP_SSL:
         email_ids = set(email_ids[0].split())
 
         cached_emails = self.cache.load(self.email_address)
+        parsed_emails = []
 
         if cached_emails:
             cached_ids = set(msg['id'].encode() for msg in cached_emails)
             email_ids -= cached_ids
 
-        if email_ids:
-            parsed_emails = self._fetch_emails(email_ids, '(RFC822.HEADER)')
-            self.cache.dump(parsed_emails, self.email_address)
+            parsed_emails += cached_emails
 
-        return parsed_emails + cached_emails
+        if email_ids:
+            downloaded_emails = self._fetch_emails(email_ids, '(RFC822.HEADER)')
+
+            if downloaded_emails:
+                parsed_emails += downloaded_emails
+
+        
+        self.cache.dump(parsed_emails, self.email_address)
+        return parsed_emails
 
 
     def _fetch_emails(self, email_ids, formatting):
@@ -200,7 +207,9 @@ class IMAP_SSL:
 
 
     def _transform_parsed_email(self, email_id, parsed_email):
-        parsed_email['id'] = email_id.decode()
+        if isinstance(email_id, bytes):
+            email_id = email_id.decode()
+        parsed_email['id'] = email_id
 
         # issue to dig: sometime the parser_email['From'] is not an str
         # making sure it's actually an string prevent some errore to happen

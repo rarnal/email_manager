@@ -10,7 +10,7 @@ from src.printer import Printer
 
 class Motor:
 
-    def __init__(self, config, connections=10):
+    def __init__(self, config, connections=15):
         self.last_search = None
         self.status = 'ON'
         self._print = Printer()
@@ -49,7 +49,7 @@ class Motor:
 
         data = self.email.get_all_emails()
 
-        log.info('{} emails successfully downloaded'.format(len(data)))
+        log.info('{} emails successfully analysed'.format(len(data)))
         log.info('Below is the top {} senders'.format(top))
 
         if data:
@@ -120,5 +120,6 @@ class Motor:
         self.name = config['name']
         self.server_type = config['server_type']
         self.ssl = config['ssl']
+        self.max_open_connections = config['maximum_open_connexions']
         self.email_engine_class = config['email_access_class']
 

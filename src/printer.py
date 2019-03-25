@@ -2,6 +2,7 @@ import re
 from collections import Counter
 
 from src import CONSTANTS
+from src import helpers
 
 
 class Printer:
@@ -10,20 +11,33 @@ class Printer:
 
 
     def display_emails(self, emails_list):
-        template = "{id_:>8} | {sender:>30} | {date:>25} | {subject:<}"
-        title = template.format(id_="id",
-                                sender="From",
-                                date="Date",
-                                subject="Subject")
-        print(title)
+        template_body = "{email_id:>8} | {sender:>{size_email}} | {date:>{size_date}} | {subject:<}"
+        template_head = "{email_id:>8} | {sender:^{size_email}} | {date:^{size_date}} | {subject:<}"
+       
+        emails_list = helpers.sort_emails_by_date(emails_list)
 
+        size_email = helpers.get_max_field_size(emails_list, 'From')
+        size_date = len(self._formatize_date(emails_list[0]['Date']))
+
+        title = template_head.format(email_id="EMAIL_ID",
+                                     sender="FROM",
+                                     date="DATE",
+                                     subject="SUBJECT",
+                                     size_email=size_email,
+                                     size_date=size_date)
+ 
+        print()
+        print(title)
         for email_msg in emails_list:
-            print(template.format(
-                id_=email_msg['id'],
+            print(template_body.format(
+                email_id=email_msg['id'],
                 sender=email_msg['From'],
                 subject=email_msg['Subject'],
-                date=self._formatize_date(email_msg['Date'])
+                date=self._formatize_date(email_msg['Date']),
+                size_email=size_email,
+                size_date=size_date
             ))
+        print()
 
 
     def _print_one_email(self, email_msg):
@@ -63,24 +77,25 @@ class Printer:
     def summary_by_top_senders(self, data, top=10):
         data = self.group_email_by(data, 'From')
 
-        formatter = "{id:>5} | {count:>5} | {sender:40}"
-        titles = formatter.format(id='id',
-                                  sender='From',
-                                  count='count')
+        formatter = "{count:>5} | {sender:{size_email}}"
+
+        size_email = len(max(data, key=len))
+
+        titles = formatter.format(sender='From',
+                                  count='Count',
+                                  size_email=size_email)
 
         top_senders = data.most_common(top)
-        ids = []
 
         print()
         print(titles)
-        for i, (sender, total) in enumerate(top_senders, 1):
-            ids.append(i)
-            print(formatter.format(id=i,
-                                   sender=sender,
-                                   count=total))
+        for sender, total in top_senders:
+            print(formatter.format(sender=sender,
+                                   count=total,
+                                   size_email=size_email))
         print()
 
-        return ids, top_senders
+        return top_senders
 
 
     @staticmethod

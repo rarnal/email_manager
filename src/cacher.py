@@ -14,12 +14,12 @@ class Cacher:
 
     def dump(self, data, email_address):
         filepath = self._create_file_path(email_address)
-        print('dumping!')
+
         if not os.path.exists(filepath):
             f = open(filepath, 'w')
             f.close()
 
-        with open(filepath, 'ab') as file_:
+        with open(filepath, 'wb') as file_:
             pickle.dump(data, file_)
 
         return True
