@@ -15,3 +15,7 @@ DESCRIPTION_ACTIONS = {
     DELETE_EMAILS: "Delete emails",
     LOGOUT: "Quit"
 }
+
+
+### CACHE
+CACHE_FOLDER = 'temp/'

@@ -17,12 +17,14 @@ import sys
 
 from progressBar import ProgressBar
 from src.logger import log
+from src.cacher import Cacher
 
 
 class IMAP_SSL:
 
     def __init__(self):
         self.mail = None
+        self.cache = Cacher()
 
 
     def initialize(self, host_name, port,
@@ -106,8 +108,19 @@ class IMAP_SSL:
 
     def get_all_emails(self):
         email_ids = self._search(None, 'ALL')
-        email_ids = email_ids[0].split()
-        return self._fetch_emails(email_ids, '(RFC822.HEADER)')
+        email_ids = set(email_ids[0].split())
+
+        cached_emails = self.cache.load(self.email_address)
+
+        if cached_emails:
+            cached_ids = set(msg['id'].encode() for msg in cached_emails)
+            email_ids -= cached_ids
+
+        if email_ids:
+            parsed_emails = self._fetch_emails(email_ids, '(RFC822.HEADER)')
+            self.cache.dump(parsed_emails, self.email_address)
+
+        return parsed_emails + cached_emails
 
 
     def _fetch_emails(self, email_ids, formatting):
@@ -115,6 +128,7 @@ class IMAP_SSL:
             email_ids = [email_ids]
 
         raw_emails = self._download_emails(email_ids, formatting)
+
         if not raw_emails:
             return None
 
@@ -181,13 +195,17 @@ class IMAP_SSL:
                             .parsebytes(email_raw)
 
         parsed_email = self._transform_parsed_email(email_id, parsed_email)
+
         return parsed_email
 
 
     def _transform_parsed_email(self, email_id, parsed_email):
         parsed_email['id'] = email_id.decode()
 
-        temp = email.utils.parseaddr(parsed_email['From'])[1]
+        # issue to dig: sometime the parser_email['From'] is not an str
+        # making sure it's actually an string prevent some errore to happen
+        # while parsing the header
+        temp = email.utils.parseaddr(str(parsed_email['From']))[1]
         del parsed_email['From']
         parsed_email['From'] = temp
 
