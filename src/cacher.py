@@ -29,7 +29,7 @@ class Cacher:
         filepath = self._create_file_path(email_address)
 
         if not os.path.exists(filepath) or not os.path.getsize(filepath):
-            return None
+            return []
 
         with open(filepath, 'rb') as file_:
             data = pickle.load(file_)

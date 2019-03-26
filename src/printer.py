@@ -16,8 +16,8 @@ class Printer:
 
         emails_list = helpers.sort_emails_by_date(emails_list)
 
-        size_email = helpers.get_max_field_size(emails_list, 'From')
-        size_date = len(self._formatize_date(emails_list[0]['Date']))
+        size_email = helpers.get_max_sender_size(emails_list)
+        size_date = len(self._formatize_date(emails_list[0].date))
 
         title = template_head.format(email_id="EMAIL_ID",
                                      sender="FROM",
@@ -30,27 +30,30 @@ class Printer:
         print(title)
         for email_msg in emails_list:
             print(template_body.format(
-                email_id=email_msg['id'],
-                sender=email_msg['From'],
-                subject=email_msg['Subject'],
-                date=self._formatize_date(email_msg['Date']),
+                email_id=email_msg.id,
+                sender=email_msg.sender,
+                subject=email_msg.subject,
+                date=self._formatize_date(email_msg.date),
                 size_email=size_email,
                 size_date=size_date
             ))
         print()
 
 
-    def _print_one_email(self, email_msg):
+    def print_one_email(self, email_msg):
+        email_msg = email_msg[0]
+
         template = "From: {sender}\nSubject: {subject}\n" \
                    "Date: {date}\n\n{content}\n\n"
 
-        content = self._get_email_content(email_msg)
-        content = content.decode(errors='replace')
-
-        print(template.format(sender=email_msg['From'],
-                              subject=email_msg['Subject'],
-                              date=self._formatize_date(email_msg['Date']),
-                              content=content))
+        print(
+            template.format(
+                sender=email_msg.sender,
+                subject=email_msg.subject,
+                date=self._formatize_date(email_msg.date),
+                content=email_msg.content.decode(errors='replace')
+            )
+        )
 
 
     @staticmethod
@@ -69,6 +72,7 @@ class Printer:
 
 
     def _get_email_content(self, email_msg):
+        email_msg = email_msg[0]
         type_ = email_msg.get_content_maintype()
 
         if type_ == 'text':
@@ -85,7 +89,7 @@ class Printer:
 
 
     def summary_by_top_senders(self, data, top=10):
-        data = self.group_email_by(data, 'From')
+        data = self.group_email_by_sender(data)
 
         formatter = "{count:>5} | {sender:{size_email}}"
 
@@ -109,8 +113,8 @@ class Printer:
 
 
     @staticmethod
-    def group_email_by(data, by):
-        return Counter(msg[by] for msg in data)
+    def group_email_by_sender(data):
+        return Counter(msg.sender for msg in data)
 
 
     def main_menu(self):

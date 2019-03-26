@@ -28,11 +28,11 @@ def get_config(source=None):
 
 def sort_emails_by_date(emails_list):
     # TODO implement a better algorythm if not efficient enough
-    sorted_emails = sorted(emails_list, key= lambda msg: msg['Date'], reverse=True)
+    sorted_emails = sorted(emails_list, key= lambda msg: msg.date, reverse=True)
     return sorted_emails
 
 
-def get_max_field_size(emails_list, field):
-    return len(max(emails_list, key=lambda msg: len(msg[field]))[field])
+def get_max_sender_size(emails_list):
+    return len(max(emails_list, key=lambda msg: len(msg.sender)).sender)
 
 

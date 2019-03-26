@@ -43,7 +43,7 @@ class IMAP_SSL:
 
 
     def _create_connection(self, nb=1):
-        bar = ProgressBar(nb, "Creating {} connexions...".format(nb))
+        bar = ProgressBar(nb, "Creating {} connexions...".format(nb), size=40)
         connections = deque()
         for _ in range(nb):
             connection = imaplib.IMAP4_SSL(host=self.host_name,
@@ -102,42 +102,75 @@ class IMAP_SSL:
         email_ids = self._search('FROM', sender_email_address)
         if not email_ids[0]:
             return None
-        email_ids = email_ids[0].split()
-        return self._fetch_emails(email_ids, '(RFC822)')
+
+        email_ids = set(email_ids[0].split())
+
+        cached_emails = self._get_cached_email_headers()
+        cached_emails_filtered = []
+
+        if cached_emails:
+            cached_emails_filtered = [msg for msg in cached_emails
+                                      if sender_email_address in msg.sender]
+        if cached_emails_filtered:
+            cached_ids = set(msg.id.encode()
+                            for msg in cached_emails_filtered)
+            email_ids -= cached_ids
+
+        downloaded_emails = self._fetch_emails(email_ids, '(RFC822.HEADER)')
+
+        self.cache.dump(downloaded_emails + cached_emails, self.email_address)
+
+        return downloaded_emails + cached_emails_filtered
 
 
     def get_all_emails(self):
         email_ids = self._search(None, 'ALL')
+        if not email_ids[0]:
+            return None
+
         email_ids = set(email_ids[0].split())
 
-        cached_emails = self.cache.load(self.email_address)
-        parsed_emails = []
-
+        cached_emails = self._get_cached_email_headers()
         if cached_emails:
-            cached_ids = set(msg['id'].encode() for msg in cached_emails)
+            cached_ids = set(msg.id.encode() for msg in cached_emails)
             email_ids -= cached_ids
 
-            parsed_emails += cached_emails
+        downloaded_emails = self._fetch_emails(email_ids, '(RFC822.HEADER)')
 
-        if email_ids:
-            downloaded_emails = self._fetch_emails(email_ids, '(RFC822.HEADER)')
+        all_emails = cached_emails + downloaded_emails
+        self.cache.dump(all_emails, self.email_address)
 
-            if downloaded_emails:
-                parsed_emails += downloaded_emails
+        return all_emails
 
-        
-        self.cache.dump(parsed_emails, self.email_address)
-        return parsed_emails
+
+    def get_selected_emails(self, ids):
+        if isinstance(ids, int):
+            ids = [ids]
+
+        for i in range(len(ids)):
+            if isinstance(ids[i], int):
+                ids[i] = str(ids[i]).encode()
+
+        downloaded_emails = self._fetch_emails(ids, '(RFC822)')
+        return downloaded_emails
+
+
+    def _get_cached_email_headers(self):
+        emails = self.cache.load(self.email_address)
+        return emails
 
 
     def _fetch_emails(self, email_ids, formatting):
-        if isinstance(email_ids, str):
+        if not email_ids:
+            return []
+
+        if isinstance(email_ids, (str, bytes, int)):
             email_ids = [email_ids]
 
         raw_emails = self._download_emails(email_ids, formatting)
 
         if not raw_emails:
-            return None
+            return []
 
         return self._parse_emails(raw_emails)
 
@@ -145,7 +178,7 @@ class IMAP_SSL:
     def _download_emails(self, email_ids, formatting):
         out = []
         log.info("Processing {} emails...".format(len(email_ids)))
-        bar = ProgressBar(len(email_ids), "Downloading emails...")
+        bar = ProgressBar(len(email_ids), "Downloading new emails...", size=40)
 
         with futures.ThreadPoolExecutor(self.max_connexions) as executor:
 
@@ -168,8 +201,7 @@ class IMAP_SSL:
 
     def _parse_emails(self, raw_emails):
         parsed_emails = []
-        bar = ProgressBar(len(raw_emails), "Parsing emails...")
-
+        bar = ProgressBar(len(raw_emails), "Parsing emails...", size=40)
         with futures.ThreadPoolExecutor(self.max_workers) as executor:
 
             todo = (
@@ -197,30 +229,34 @@ class IMAP_SSL:
 
 
     def _parse_email(self, email_id, email_raw):
-        parsed_email = email.parser \
-                            .BytesParser() \
-                            .parsebytes(email_raw)
+        try:
+            parsed_email = email.parser \
+                                .BytesParser() \
+                                .parsebytes(email_raw)
+        except AttributeError as error:
+            raise AttributeError("{} : {}\n{}".format(email_id,
+                                                      error,
+                                                      email_raw))
 
         parsed_email = self._transform_parsed_email(email_id, parsed_email)
-
         return parsed_email
 
 
     def _transform_parsed_email(self, email_id, parsed_email):
+        transformed_email = Email()
+
         if isinstance(email_id, bytes):
             email_id = email_id.decode()
-        parsed_email['id'] = email_id
+        transformed_email.id = email_id
 
         # issue to dig: sometime the parser_email['From'] is not an str
-        # making sure it's actually an string prevent some errore to happen
+        # making sure it's actually an string prevent some errors to happen
         # while parsing the header
-        temp = email.utils.parseaddr(str(parsed_email['From']))[1]
-        del parsed_email['From']
-        parsed_email['From'] = temp
+        temp = email.utils.parseaddr(str(parsed_email['From']))
+        transformed_email.sender = temp[1]
 
         temp = email.utils.parsedate_to_datetime(parsed_email['Date'])
-        del parsed_email['Date']
-        parsed_email['Date'] = temp
+        transformed_email.date = temp
 
         try:
             temp = email.header.decode_header(parsed_email['Subject'])
@@ -236,12 +272,57 @@ class IMAP_SSL:
             if not isinstance(temp, (bytes, str)):
                 temp = ''
 
-        del parsed_email['Subject']
-        parsed_email['Subject'] = temp
+        transformed_email.subject = temp
 
-        return parsed_email
+        temp = self._get_email_content(parsed_email)
+        transformed_email.content = temp
+
+        return transformed_email
+
+
+    def _get_email_content(self, parsed_email):
+        type_ = parsed_email.get_content_maintype()
+
+        if type_ == 'text' and parsed_email.get_content_subtype() == 'plain':
+                return parsed_email.get_payload(decode=True)
+        elif 'image' in type_:
+            return b" *** IMAGE ***"
+        elif 'multipart' in type_:
+            content = b''
+            for part in parsed_email.get_payload():
+                content += self._get_email_content(part)
+            return content
+        else:
+            return b''
 
 
 
+class Email:
+    def __init__(self):
+        self.id = None
+        self.sender = None
+        self.receiver = None
+        self.date = None
+        self.subject = None
+        self.content = None
+        self.size = None
 
 
+    def __eq__(self, other):
+        if isinstance(other, int):
+            return self.id == id
+        elif isinstance(other, type(self)):
+            return self.id == other.id
+        elif isinstance(other, bytes):
+            return self.id == other.decode()
+        else:
+            raise NotImplementedError
+
+
+    def __str__(self):
+        print('id', self.id)
+        print('sender', self.sender)
+        print('date', self.date)
+        print('subject', self.subject)
+        print('content', self.content.decode())
+        return ''

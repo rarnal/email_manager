@@ -28,12 +28,13 @@ class Motor:
 
     def run(self):
         self._parser()
+        self._assign_arg_to_command()
         self.command_center()
 
 
     def _help_message(self):
         template = "{s:3}  {l:15}\t{t:10}\t{h}\n"
-        msg = "\nIncorrect !\nUse one of the below options\n\n[options]\n"
+        msg = "\nUse one of the below options\n\n[options]\n"
 
         for action in CONSTANTS.ACTIONS:
             data = CONSTANTS.USAGES[action]
@@ -69,21 +70,46 @@ class Motor:
         return True
 
 
+    def _assign_arg_to_command(self):
+        self.commands = {
+            CONSTANTS.TOP_SENDERS: self.summarize_per_sender,
+            CONSTANTS.LIST_BOXES: self.get_mailboxes,
+            CONSTANTS.RECEIVED_FROM: self.get_emails_from,
+            CONSTANTS.SENT_TO: lambda: print(CONSTANTS.SENT_TO),
+            CONSTANTS.READ_EMAIL: self.read_email,
+            CONSTANTS.DELETE_ID: lambda: print(CONSTANTS.DELETE_ID),
+            CONSTANTS.DELETE_FROM: lambda: print(CONSTANTS.DELETE_FROM),
+            CONSTANTS.HELP: self.display_help,
+            CONSTANTS.LOGOUT: self.logout
+        }
+
+
+    def display_help(self):
+        print(self.help_message)
+
+
+    def read_email(self, id_):
+        email_message = self.email.get_selected_emails(id_)
+        self._print.print_one_email(email_message)
+
+
     def parse_answer(self, answer):
         try:
             f = io.StringIO()
             with contextlib.redirect_stderr(f):
                 parsed = self.parser.parse_args(answer.split())
-        except SystemExit as e:
-            print(self.help_message)
+        except SystemExit:
+            print("Incorrect usage. Type -h for help !")
             return False
 
-        parsed = vars(parsed) 
-        
+        parsed = vars(parsed)
+
         for action in CONSTANTS.ACTIONS:
             if parsed[action]:
-                print(action)
-
+                arg = parsed[action]
+                if isinstance(arg, bool):
+                    return self.commands[action]()
+                return self.commands[action](arg)
 
 
     def command_center(self):
@@ -95,8 +121,7 @@ class Motor:
 
 
 
-    def summarize(self):
-        top = 10
+    def summarize_per_sender(self, top):
 
         data = self.email.get_all_emails()
 
@@ -111,9 +136,8 @@ class Motor:
         pass
 
 
-    def get_emails_from(self):
-        question = "Type in the sender's email address:"
-        sender_email_address = self._print.ask_for_email(question)
+    def get_emails_from(self, sender_email_address):
+        sender_email_address = sender_email_address[0]
         emails_list = self.email.search_by_sender(sender_email_address)
 
         if not emails_list:
