@@ -1,15 +1,15 @@
 
 PROGRAM_NAME = 'Program'
-PROGRAM_USAGE = 'Incorrect.\nUse one of the below options'
 
 ### ACTIONS
-TOP_SENDERS = 'top-senders'
+TOP_SENDERS = 'top_senders'
 LIST_BOXES = 'boxes'
 RECEIVED_FROM = 'from'
 SENT_TO = 'to'
 READ_EMAIL = 'read'
-DELETE_ID = 'delete-id'
-DELETE_FROM = 'delete-from'
+DELETE_ID = 'delete_id'
+DELETE_FROM = 'delete_from'
+HELP = 'help'
 LOGOUT = 'quit'
 
 ACTIONS = (
@@ -20,6 +20,7 @@ ACTIONS = (
     READ_EMAIL,
     DELETE_ID,
     DELETE_FROM,
+    HELP,
     LOGOUT
 )
 
@@ -31,7 +32,7 @@ USAGES = {
         'kwargs': {'nargs': '?',
                    'type': int,
                    'const': 10,
-                   'help': "Summarize all emails per senders"}
+                   'help': "Summarize all emails from the top [INT] senders (by default top 10)"}
     },
     LIST_BOXES:
     {
@@ -79,6 +80,13 @@ USAGES = {
         'kwargs': {'nargs': 1,
                    'type': str,
                    'help': "Delete ALL emails received from [email address]"}
+    },
+    HELP:
+    {
+        'args': {'short': "-h",
+                 'long': "--{}".format(HELP)},
+        'kwargs': {'action': "store_true",
+                   'help': "Get a description of each actions"}
     },
     LOGOUT:
     {

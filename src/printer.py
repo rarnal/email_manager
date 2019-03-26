@@ -58,6 +58,16 @@ class Printer:
         return date.strftime("%Y-%m-%d at %T")
 
 
+    @staticmethod
+    def input():
+        out = ''
+
+        while not out:
+            out = input('>>> ')
+
+        return out
+
+
     def _get_email_content(self, email_msg):
         type_ = email_msg.get_content_maintype()
 
@@ -103,18 +113,16 @@ class Printer:
         return Counter(msg[by] for msg in data)
 
 
-    @staticmethod
-    def main_menu(question):
+    def main_menu(self):
         answer = None
+
         print()
-        print(question)
-        answer = input()
+        answer = self.input()
 
         return answer
 
 
-    @staticmethod
-    def ask_for_email(question):
+    def ask_for_email(self, question):
         answer = ''
         pattern = "^[\w\d\-_\.]+[a-zA-Z]@[a-zA-Z][a-zA-Z\.\-]+\.[a-zA-Z]{2,}$"
 
@@ -123,7 +131,7 @@ class Printer:
                 print("This is not a valid email address\n")
             print()
             print(question)
-            answer = input()
+            answer = self.input()
             print()
 
         return answer
