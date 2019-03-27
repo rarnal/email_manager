@@ -64,7 +64,7 @@ USAGES = {
         'args': {'short': "-r",
                  'long': "--{}".format(READ_EMAIL)},
         'kwargs': {'nargs': 1,
-                   'type': int,
+                   'type': bytes,
                    'help': "Display the content of email [id]"}
     },
     DELETE_ID:

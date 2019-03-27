@@ -30,7 +30,7 @@ class Printer:
         print(title)
         for email_msg in emails_list:
             print(template_body.format(
-                email_id=email_msg.id,
+                email_id=email_msg.id.decode(),
                 sender=email_msg.sender,
                 subject=email_msg.subject,
                 date=self._formatize_date(email_msg.date),

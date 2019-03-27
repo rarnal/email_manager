@@ -146,16 +146,14 @@ class Motor:
     def get_emails_sent_to(self, email_address):
         self.get_selected_mailbox('Sent')
         email_address = email_address[0]
-        emails_list = self.email.search_by_email_address(email_address,
-                                                         'TO')
+        emails_list = self.email.search_filtered(email_address, 'TO')
         self._display_emails(emails_list)
 
 
     def get_emails_from(self, email_address):
         self.get_selected_mailbox('Inbox')
         email_address = email_address[0]
-        emails_list = self.email.search_by_email_address(email_address,
-                                                         'FROM')
+        emails_list = self.email.search_filtered(email_address, 'FROM')
         self._display_emails(emails_list)
 
 

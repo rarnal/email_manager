@@ -12,15 +12,19 @@ class Cacher:
             os.mkdir(self.dir_)
 
 
-    def dump(self, data, email_address):
+    def add(self, data, email_address):
         filepath = self._create_file_path(email_address)
 
         if not os.path.exists(filepath):
             f = open(filepath, 'w')
             f.close()
+    
+        cache = self.load(email_address)
 
-        with open(filepath, 'ab') as file_:
-            pickle.dump(data, file_)
+        with open(filepath, 'wb') as write:
+            print(len(data), len(cache), len(data+cache))
+            to_cache = cache + data
+            pickle.dump(to_cache, write)
 
         return True
 
