@@ -19,7 +19,7 @@ class Cacher:
             f = open(filepath, 'w')
             f.close()
 
-        with open(filepath, 'wb') as file_:
+        with open(filepath, 'ab') as file_:
             pickle.dump(data, file_)
 
         return True
@@ -35,6 +35,15 @@ class Cacher:
             data = pickle.load(file_)
 
         return data
+
+
+    def delete_cache(self, email_address):
+        filepath = self._create_file_path(email_address)
+
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+        return True
 
 
     def _create_file_path(self, email_address):

@@ -98,8 +98,8 @@ class IMAP_SSL:
         return res
 
 
-    def search_by_sender(self, sender_email_address):
-        email_ids = self._search('FROM', sender_email_address)
+    def search_by_email_address(self, email_address, from_or_to):
+        email_ids = self._search(from_or_to, email_address)
         if not email_ids[0]:
             return None
 
@@ -110,7 +110,7 @@ class IMAP_SSL:
 
         if cached_emails:
             cached_emails_filtered = [msg for msg in cached_emails
-                                      if sender_email_address in msg.sender]
+                                      if email_address in msg.sender]
         if cached_emails_filtered:
             cached_ids = set(msg.id.encode()
                             for msg in cached_emails_filtered)

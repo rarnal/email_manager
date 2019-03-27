@@ -9,6 +9,7 @@ SENT_TO = 'to'
 READ_EMAIL = 'read'
 DELETE_ID = 'delete_id'
 DELETE_FROM = 'delete_from'
+DELETE_CACHE = 'delete_cache'
 HELP = 'help'
 LOGOUT = 'quit'
 
@@ -20,6 +21,7 @@ ACTIONS = (
     READ_EMAIL,
     DELETE_ID,
     DELETE_FROM,
+    DELETE_CACHE,
     HELP,
     LOGOUT
 )
@@ -80,6 +82,13 @@ USAGES = {
         'kwargs': {'nargs': 1,
                    'type': str,
                    'help': "Delete ALL emails received from [email address]"}
+    },
+    DELETE_CACHE:
+    {
+        'args': {'short': "-dc",
+                 'long': "--{}".format(DELETE_CACHE)},
+        'kwargs': {'action': "store_true",
+                   'help': "Delete the cache where emails headers are saved"}
     },
     HELP:
     {

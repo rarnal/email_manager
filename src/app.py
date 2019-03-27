@@ -10,6 +10,7 @@ from collections import Counter
 from src import CONSTANTS
 from src.logger import log
 from src.printer import Printer
+from src.cacher import Cacher
 
 
 class Motor:
@@ -18,6 +19,7 @@ class Motor:
         self.last_search = None
         self.status = 'ON'
         self._print = Printer()
+        self._cacher = Cacher()
         self.max_open_connections = connections
 
         self._parse_config(config)
@@ -73,12 +75,13 @@ class Motor:
     def _assign_arg_to_command(self):
         self.commands = {
             CONSTANTS.TOP_SENDERS: self.summarize_per_sender,
-            CONSTANTS.LIST_BOXES: self.get_mailboxes,
+            CONSTANTS.LIST_BOXES: self.get_all_mailboxes,
             CONSTANTS.RECEIVED_FROM: self.get_emails_from,
-            CONSTANTS.SENT_TO: lambda: print(CONSTANTS.SENT_TO),
+            CONSTANTS.SENT_TO: self.get_emails_sent_to,
             CONSTANTS.READ_EMAIL: self.read_email,
             CONSTANTS.DELETE_ID: lambda: print(CONSTANTS.DELETE_ID),
             CONSTANTS.DELETE_FROM: lambda: print(CONSTANTS.DELETE_FROM),
+            CONSTANTS.DELETE_CACHE: self.delete_cache,
             CONSTANTS.HELP: self.display_help,
             CONSTANTS.LOGOUT: self.logout
         }
@@ -86,6 +89,10 @@ class Motor:
 
     def display_help(self):
         print(self.help_message)
+
+
+    def delete_cache(self):
+        self._cacher.delete_cache(self.email_address)
 
 
     def read_email(self, id_):
@@ -136,10 +143,23 @@ class Motor:
         pass
 
 
-    def get_emails_from(self, sender_email_address):
-        sender_email_address = sender_email_address[0]
-        emails_list = self.email.search_by_sender(sender_email_address)
+    def get_emails_sent_to(self, email_address):
+        self.get_selected_mailbox('Sent')
+        email_address = email_address[0]
+        emails_list = self.email.search_by_email_address(email_address,
+                                                         'TO')
+        self._display_emails(emails_list)
 
+
+    def get_emails_from(self, email_address):
+        self.get_selected_mailbox('Inbox')
+        email_address = email_address[0]
+        emails_list = self.email.search_by_email_address(email_address,
+                                                         'FROM')
+        self._display_emails(emails_list)
+
+
+    def _display_emails(self, emails_list):
         if not emails_list:
             log.info("No emails were retrieved")
         else:
@@ -156,7 +176,11 @@ class Motor:
         return self.email.fetch_full_email(ids)
 
 
-    def get_mailboxes(self):
+    def get_selected_mailbox(self, box):
+        self.email.select_inbox(box)
+
+
+    def get_all_mailboxes(self):
         """
         Get a list of all the available folders in the mail box
         """
