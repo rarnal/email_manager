@@ -42,18 +42,22 @@ class Printer:
 
     def print_one_email(self, email_msg):
         email_msg = email_msg[0]
+        
+        header = {
+            'From': email_msg.sender,
+            'To': email_msg.receiver,
+            'Cc': email_msg.cc,
+            'Bcc': email_msg.bcc,
+            'Subject': email_msg.subject,
+            'Date': email_msg.date
+        }
 
-        template = "From: {sender}\nSubject: {subject}\n" \
-                   "Date: {date}\n\n{content}\n\n"
+        for title, content in header.items():
+            if content:
+                print(title, ':', content)
 
-        print(
-            template.format(
-                sender=email_msg.sender,
-                subject=email_msg.subject,
-                date=self._formatize_date(email_msg.date),
-                content=email_msg.content.decode(errors='replace')
-            )
-        )
+        print('\n')        
+        print(email_msg.content.decode(errors='replace'))
 
 
     @staticmethod
@@ -72,16 +76,21 @@ class Printer:
 
 
     def print_mailboxes(self, mailboxes):
-        template = "{:2} | {:<}"
+        max_size_name = len(mailboxes[max(mailboxes, key=lambda i: len(mailboxes[i][0]))][0])
+        template = "{id:2} | {name:<{max_size}} | {count:<}"
+
         print("Here is all the available mailboxes on your account\n"
               "You can select any of them using -sb ID\n")
 
-        print(template.format("ID", "Name"))
-        for id_, name in mailboxes.items():
-            print(template.format(id_, name))
+        print(template.format(id="ID", name="Name", count="Total emails", max_size=max_size_name))
+        for id_, (name, total_emails) in mailboxes.items():
+            print(template.format(id=id_,
+                                  name=name,
+                                  count=total_emails,
+                                  max_size=max_size_name))
 
 
-    def _get_email_content(self, email_msg):
+    def _get_emdsdqkail_content(self, email_msg):
         email_msg = email_msg[0]
         type_ = email_msg.get_content_maintype()
 

@@ -32,6 +32,7 @@ class Motor:
     def run(self):
         self._parser()
         self._assign_arg_to_command()
+        self.get_all_mailboxes(display_help=False)
         self.command_center()
 
 
@@ -98,6 +99,7 @@ class Motor:
 
 
     def read_email(self, id_):
+        id_ = str(id_[0]).encode()
         email_message = self.email.get_selected_emails(id_)
         self._print.print_one_email(email_message)
 
@@ -152,7 +154,6 @@ class Motor:
 
 
     def get_emails_from(self, email_address):
-        self.get_selected_mailbox('Inbox')
         email_address = email_address[0]
         emails_list = self.email.search_filtered(email_address, 'FROM')
         self._display_emails(emails_list)
@@ -177,23 +178,28 @@ class Motor:
 
     def get_selected_mailbox(self, mailbox_id):
         if not self.mailboxes:
-            self.get_all_mailboxes()
+            self.get_all_mailboxes(display_help=False)
 
         mailbox_id = int(mailbox_id[0])
-        mailbox = self.mailboxes[mailbox_id]
+        mailbox = self.mailboxes[mailbox_id][0]
         res = self.email.select_inbox(mailbox.encode())
+
         if b'Failure' in res:
             log.info("Could not find the mailbox: {}".format(mailbox))
         else:
             log.info("Connected to {} !".format(mailbox))
+            log.info("{} emails in that mailbox".format(res.decode()))
 
 
-    def get_all_mailboxes(self):
+    def get_all_mailboxes(self, display_help=True):
         """
         Get a list of all the available folders in the mail box
         """
-        self.mailboxes = self.email.get_mailboxes()
-        self._print.print_mailboxes(self.mailboxes)
+        if not self.mailboxes:
+            self.mailboxes = self.email.get_mailboxes()
+
+        if display_help:
+            self._print.print_mailboxes(self.mailboxes)
 
 
     def get_storage_info(self):

@@ -38,7 +38,6 @@ class IMAP_SSL:
         self.password = password
 
         self.max_connexions = max_conns
-        self.max_workers = 20
 
         self.connections = self._create_connection(self.max_connexions)
 
@@ -70,6 +69,7 @@ class IMAP_SSL:
             while connection.state == "AUTH":
                 connection.select()
                 time.sleep(0.1)
+
         return True
 
 
@@ -83,16 +83,34 @@ class IMAP_SSL:
         _, res = self.connections[0].list()
         compiler = """(\(.+\))\s(".+")\s(".+")"""
         boxes = {}
+    
+        n = 1
 
-        for n, mailbox in enumerate(res, 1):
+        for mailbox in res:
             here = re.match(compiler, mailbox.decode())
-            boxes[n] = here[3]
+
+            if here[3] not in ('"[Gmail]"'):
+                total_emails = self.select_inbox(box=here[3])
+                boxes[n] = (here[3], int(total_emails))
+                n += 1
 
         return boxes
 
 
-    def select_inbox(self, box='Inbox'):
-        _, res = self.connections[0].select(box)
+    def select_inbox(self, box=None, connections=None):
+        if not connections:
+            connections = self.connections
+
+        if not isinstance(connections, (tuple, list, deque)):
+            connections = [connections]
+
+        if not box:
+            for conn in connections:
+                _, res = conn.select()
+        else:
+            for conn in connections:
+                _, res = conn.select(box)
+
         return res[0]
 
 
@@ -176,7 +194,7 @@ class IMAP_SSL:
         log.info("Processing {} emails...".format(len(email_ids)))
         bar = ProgressBar(len(email_ids), "Downloading new emails...", size=40)
 
-        with futures.ThreadPoolExecutor(self.max_connexions) as executor:
+        with futures.ThreadPoolExecutor(max(1, self.max_connexions)) as executor:
 
             todo = (
                 executor.submit(self._fetch_one_email, email_id, formatting)
@@ -185,11 +203,16 @@ class IMAP_SSL:
 
             for ready in futures.as_completed(todo):
                 try:
-                    out.append(ready.result())
+                    res = ready.result()
                 except Exception as error:
                     # the 100 spaces help to "erase" the progress bar
                     log.error("One email was not correctly downloaded: "
                               "{}{}".format(error, ' ' * 100))
+                    res = None
+
+                if res:
+                    out.append(res)
+
                 bar += 1
 
         return out
@@ -211,10 +234,16 @@ class IMAP_SSL:
 
 
     def _fetch_one_email(self, email_id, formatting):
-        connection = self.connections.pop()
-        _, email_raw = connection.uid('fetch', email_id, formatting)
-        email_raw = (email_id, email_raw[0][1])
-        self.connections.appendleft(connection)
+        with OpenConn(self.connections) as connection:
+            _, email_raw = connection.uid('fetch', email_id, formatting)
+            if not email_raw[0]:
+                return False
+            email_raw = (email_id, email_raw[0][1])
+    
+        # this 121 is a result I get sometimes. I don't know the reason.
+        if email_raw[1] == 121:
+            return self._fetch_one_email(email_id, formatting)
+
         return email_raw
 
 
@@ -247,7 +276,17 @@ class IMAP_SSL:
         temp = email.utils.parseaddr(str(parsed_email['From']))
         transformed_email.sender = temp[1]
 
+        temp = email.utils.parseaddr(str(parsed_email['To']))
+        transformed_email.receiver = temp[1]
+
+        temp = email.utils.parseaddr(str(parsed_email['Cc']))
+        transformed_email.cc = temp[1]
+
+        temp = email.utils.parseaddr(str(parsed_email['Bcc']))
+        transformed_email.bcc = temp[1]
+
         temp = email.utils.parsedate_to_datetime(parsed_email['Date'])
+        temp = temp.replace(tzinfo=None)
         transformed_email.date = temp
 
         try:
@@ -294,6 +333,8 @@ class Email:
         self.id = None
         self.sender = None
         self.receiver = None
+        self.cc = None
+        self.bcc = None
         self.date = None
         self.subject = None
         self.content = None
@@ -320,3 +361,16 @@ class Email:
         print('subject', self.subject)
         print('content', self.content.decode())
         return ''
+
+
+class OpenConn():
+    def __init__(self, conn):
+        self.conn = conn
+
+    def __enter__(self):
+        self.connection = self.conn.pop()
+        return self.connection
+
+    def __exit__(self, here, there, that):
+        self.conn.appendleft(self.connection)
+
