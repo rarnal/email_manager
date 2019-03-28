@@ -71,6 +71,16 @@ class Printer:
         return out
 
 
+    def print_mailboxes(self, mailboxes):
+        template = "{:2} | {:<}"
+        print("Here is all the available mailboxes on your account\n"
+              "You can select any of them using -sb ID\n")
+
+        print(template.format("ID", "Name"))
+        for id_, name in mailboxes.items():
+            print(template.format(id_, name))
+
+
     def _get_email_content(self, email_msg):
         email_msg = email_msg[0]
         type_ = email_msg.get_content_maintype()
@@ -78,7 +88,7 @@ class Printer:
         if type_ == 'text':
             return email_msg.get_payload(decode=True)
         elif 'image' in type_:
-            return b" *** IMAGE *** "
+            return b" [IMAGE] "
         elif 'multipart' in type_:
             content = b''
             for part in email_msg.get_payload():

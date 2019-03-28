@@ -21,6 +21,7 @@ class Motor:
         self._print = Printer()
         self._cacher = Cacher()
         self.max_open_connections = connections
+        self.mailboxes = None
 
         self._parse_config(config)
         self._help_message()
@@ -76,6 +77,7 @@ class Motor:
         self.commands = {
             CONSTANTS.TOP_SENDERS: self.summarize_per_sender,
             CONSTANTS.LIST_BOXES: self.get_all_mailboxes,
+            CONSTANTS.SELECT_BOX: self.get_selected_mailbox,
             CONSTANTS.RECEIVED_FROM: self.get_emails_from,
             CONSTANTS.SENT_TO: self.get_emails_sent_to,
             CONSTANTS.READ_EMAIL: self.read_email,
@@ -127,7 +129,6 @@ class Motor:
                 self.parse_answer(answer)
 
 
-
     def summarize_per_sender(self, top):
 
         data = self.email.get_all_emails()
@@ -174,15 +175,25 @@ class Motor:
         return self.email.fetch_full_email(ids)
 
 
-    def get_selected_mailbox(self, box):
-        self.email.select_inbox(box)
+    def get_selected_mailbox(self, mailbox_id):
+        if not self.mailboxes:
+            self.get_all_mailboxes()
+
+        mailbox_id = int(mailbox_id[0])
+        mailbox = self.mailboxes[mailbox_id]
+        res = self.email.select_inbox(mailbox.encode())
+        if b'Failure' in res:
+            log.info("Could not find the mailbox: {}".format(mailbox))
+        else:
+            log.info("Connected to {} !".format(mailbox))
 
 
     def get_all_mailboxes(self):
         """
         Get a list of all the available folders in the mail box
         """
-        return self.email.get_mailboxes()
+        self.mailboxes = self.email.get_mailboxes()
+        self._print.print_mailboxes(self.mailboxes)
 
 
     def get_storage_info(self):

@@ -4,6 +4,7 @@ PROGRAM_NAME = 'Program'
 ### ACTIONS
 TOP_SENDERS = 'top_senders'
 LIST_BOXES = 'boxes'
+SELECT_BOX = 'select_box'
 RECEIVED_FROM = 'from'
 SENT_TO = 'to'
 READ_EMAIL = 'read'
@@ -16,6 +17,7 @@ LOGOUT = 'quit'
 ACTIONS = (
     TOP_SENDERS,
     LIST_BOXES,
+    SELECT_BOX,
     RECEIVED_FROM,
     SENT_TO,
     READ_EMAIL,
@@ -42,6 +44,14 @@ USAGES = {
                  'long': "--{}".format(LIST_BOXES)},
         'kwargs': {'action': "store_true",
                    'help': "Display all availables inboxes"}
+    },
+    SELECT_BOX:
+    {
+        'args': {'short': "-sb",
+                 'long': "--{}".format(SELECT_BOX)},
+        'kwargs': {'nargs': 1,
+                   'type': str,
+                   'help': "Select a box"}
     },
     RECEIVED_FROM:
     {

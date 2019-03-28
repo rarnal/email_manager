@@ -18,11 +18,10 @@ class Cacher:
         if not os.path.exists(filepath):
             f = open(filepath, 'w')
             f.close()
-    
+
         cache = self.load(email_address)
 
         with open(filepath, 'wb') as write:
-            print(len(data), len(cache), len(data+cache))
             to_cache = cache + data
             pickle.dump(to_cache, write)
 

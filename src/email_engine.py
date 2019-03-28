@@ -9,6 +9,7 @@ import email.utils
 from concurrent import futures
 from collections import deque
 import datetime
+import re
 # import smtplib
 
 import ssl
@@ -80,7 +81,14 @@ class IMAP_SSL:
 
     def get_mailboxes(self):
         _, res = self.connections[0].list()
-        return res
+        compiler = """(\(.+\))\s(".+")\s(".+")"""
+        boxes = {}
+
+        for n, mailbox in enumerate(res, 1):
+            here = re.match(compiler, mailbox.decode())
+            boxes[n] = here[3]
+
+        return boxes
 
 
     def select_inbox(self, box='Inbox'):
