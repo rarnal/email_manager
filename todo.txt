@@ -1,9 +1,9 @@
-- Show individual emails sorted by date (today it's chaotic because of
-  threadings)
-- add an action to read an email (from id)
 - add an action to delete an email:
     by id
     by sender
-- add an action to cache downloaded emails (the header information only)
 - add an action to see the most 10 recent emails
-- add an action to see all boxes and select any
+- fix the top sender per mailbox
+- change the inbox/folder naming to mailbox only
+- Imrpve speed whenever possible
+- Sanitize user input
+- Look for exception uncatch area

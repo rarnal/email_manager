@@ -24,19 +24,28 @@ class Motor:
         self.mailboxes = None
 
         self._parse_config(config)
-        self._help_message()
+
         self._initialize_email_engine()
         self._connect()
 
+        self._create_parser()
+        self._assign_arg_to_command()
+        self._create_help_message()
+
 
     def run(self):
-        self._parser()
-        self._assign_arg_to_command()
         self.get_all_mailboxes(display_help=False)
+        self.select_bigger_mailbox()
+        self.display_help()
         self.command_center()
 
 
-    def _help_message(self):
+    def select_bigger_mailbox(self):
+        bigger = max(self.mailboxes, key=lambda x: self.mailboxes[x])
+        self.email.select_inbox(bigger)
+
+
+    def _create_help_message(self):
         template = "{s:3}  {l:15}\t{t:10}\t{h}\n"
         msg = "\nUse one of the below options\n\n[options]\n"
 
@@ -59,7 +68,7 @@ class Motor:
         self.help_message = msg
 
 
-    def _parser(self):
+    def _create_parser(self):
         self.parser = argparse.ArgumentParser(prog=CONSTANTS.PROGRAM_NAME,
                                               add_help=False)
 
@@ -70,8 +79,6 @@ class Motor:
             excl.add_argument(data['args']['short'],
                               data['args']['long'],
                               **data['kwargs'])
-
-        return True
 
 
     def _assign_arg_to_command(self):
@@ -181,7 +188,11 @@ class Motor:
             self.get_all_mailboxes(display_help=False)
 
         mailbox_id = int(mailbox_id[0])
-        mailbox = self.mailboxes[mailbox_id][0]
+        if not (0 <= mailbox_id < len(self.mailboxes)):
+            log.info("Invalid input, please try again")
+            return False
+
+        mailbox = list(self.mailboxes.keys())[mailbox_id]
         res = self.email.select_inbox(mailbox.encode())
 
         if b'Failure' in res:
@@ -220,6 +231,7 @@ class Motor:
                               self.password,
                               self.max_open_connections)
         log.info("Logged in !")
+        log.info("Will process a few more things for some seconds")
 
 
     def _initialize_email_engine(self):

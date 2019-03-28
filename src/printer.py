@@ -42,7 +42,7 @@ class Printer:
 
     def print_one_email(self, email_msg):
         email_msg = email_msg[0]
-        
+
         header = {
             'From': email_msg.sender,
             'To': email_msg.receiver,
@@ -56,7 +56,7 @@ class Printer:
             if content:
                 print(title, ':', content)
 
-        print('\n')        
+        print('\n')
         print(email_msg.content.decode(errors='replace'))
 
 
@@ -76,21 +76,26 @@ class Printer:
 
 
     def print_mailboxes(self, mailboxes):
-        max_size_name = len(mailboxes[max(mailboxes, key=lambda i: len(mailboxes[i][0]))][0])
+        max_size_name = max(len(x[0]) for x in mailboxes.items())
         template = "{id:2} | {name:<{max_size}} | {count:<}"
 
         print("Here is all the available mailboxes on your account\n"
               "You can select any of them using -sb ID\n")
 
-        print(template.format(id="ID", name="Name", count="Total emails", max_size=max_size_name))
-        for id_, (name, total_emails) in mailboxes.items():
+        title = template.format(id="ID",
+                                name="Name",
+                                count="Total emails",
+                                max_size=max_size_name)
+
+        print(title)
+        for id_, (name, total_emails) in enumerate(mailboxes.items()):
             print(template.format(id=id_,
                                   name=name,
                                   count=total_emails,
                                   max_size=max_size_name))
 
 
-    def _get_emdsdqkail_content(self, email_msg):
+    def _get_email_content(self, email_msg):
         email_msg = email_msg[0]
         type_ = email_msg.get_content_maintype()
 

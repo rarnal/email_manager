@@ -44,15 +44,21 @@ class IMAP_SSL:
 
     def _create_connection(self, nb=1):
         bar = ProgressBar(nb, "Creating {} connexions...".format(nb), size=40)
-        connections = deque()
+        connexions = deque()
+
         for _ in range(nb):
-            connection = imaplib.IMAP4_SSL(host=self.host_name,
-                                           port=self.port,
-                                           ssl_context=ssl.SSLContext())
-            self.login(connection)
-            connections.append(connection)
+            connexions.append(self._open_one_connexion())
             bar += 1
-        return connections
+
+        return connexions
+
+
+    def _open_one_connexion(self):
+        connection = imaplib.IMAP4_SSL(host=self.host_name,
+                                       port=self.port,
+                                       ssl_context=ssl.SSLContext())
+        self.login(connection)
+        return connection
 
 
     def login(self, connections):
@@ -83,16 +89,14 @@ class IMAP_SSL:
         _, res = self.connections[0].list()
         compiler = """(\(.+\))\s(".+")\s(".+")"""
         boxes = {}
-    
-        n = 1
 
         for mailbox in res:
             here = re.match(compiler, mailbox.decode())
+            mailbox_name = here[3]
 
-            if here[3] not in ('"[Gmail]"'):
-                total_emails = self.select_inbox(box=here[3])
-                boxes[n] = (here[3], int(total_emails))
-                n += 1
+            if mailbox_name not in ('"[Gmail]"'):
+                total_emails = self.connections[0].select(mailbox_name)[1][0]
+                boxes[mailbox_name] = int(total_emails)
 
         return boxes
 
@@ -239,7 +243,7 @@ class IMAP_SSL:
             if not email_raw[0]:
                 return False
             email_raw = (email_id, email_raw[0][1])
-    
+
         # this 121 is a result I get sometimes. I don't know the reason.
         if email_raw[1] == 121:
             return self._fetch_one_email(email_id, formatting)
