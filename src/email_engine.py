@@ -117,6 +117,31 @@ class IMAP_SSL:
 
         return res[0]
 
+    
+    def delete_emails_by_sender(self, email_address):
+        ids = self._search('FROM', email_address)
+        self.delete_emails_by_id(ids[0].split())
+
+
+    def delete_emails_by_id(self, ids):
+        if isinstance(ids, (int, bytes)):
+            ids = [ids]
+        
+        bar = ProgressBar(len(ids), "Deleting {} emails...".format(len(ids)), size=40)
+        for id_ in ids:
+            self.connections[0].uid('store', id_, '+FLAGS', '\\Deleted')
+            bar += 1
+
+        self._expunge_mailbox() 
+
+        cached = self._get_cached_email_headers()
+        cached = [msg for msg in cached if msg.id not in ids]
+        self.cache.add(cached, self.email_address, overwrite=True)
+
+        
+    def _expunge_mailbox(self):
+        print(self.connections[0].expunge())
+
 
     def get_quota(self):
         _, res = self.connections[0].getquotaroot('inbox')

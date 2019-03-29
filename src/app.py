@@ -89,8 +89,8 @@ class Motor:
             CONSTANTS.RECEIVED_FROM: self.get_emails_from,
             CONSTANTS.SENT_TO: self.get_emails_sent_to,
             CONSTANTS.READ_EMAIL: self.read_email,
-            CONSTANTS.DELETE_ID: lambda: print(CONSTANTS.DELETE_ID),
-            CONSTANTS.DELETE_FROM: lambda: print(CONSTANTS.DELETE_FROM),
+            CONSTANTS.DELETE_ID: self.delete_emails_by_id,
+            CONSTANTS.DELETE_FROM: self.delete_emails_by_sender,
             CONSTANTS.DELETE_CACHE: self.delete_cache,
             CONSTANTS.HELP: self.display_help,
             CONSTANTS.LOGOUT: self.logout
@@ -148,9 +148,13 @@ class Motor:
         if data:
             self.last_search = self._print.summary_by_top_senders(data, top)
 
+    
+    def delete_emails_by_sender(self, email_address):
+        self.email.delete_emails_by_sender(email_address[0])
 
-    def delete_emails():
-        pass
+
+    def delete_emails_by_id(self, ids):
+        self.email.delete_emails_by_id(ids)
 
 
     def get_emails_sent_to(self, email_address):

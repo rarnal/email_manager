@@ -12,14 +12,17 @@ class Cacher:
             os.mkdir(self.dir_)
 
 
-    def add(self, data, email_address):
+    def add(self, data, email_address, overwrite=False):
         filepath = self._create_file_path(email_address)
 
         if not os.path.exists(filepath):
             f = open(filepath, 'w')
             f.close()
 
-        cache = self.load(email_address)
+        if not overwrite:
+            cache = self.load(email_address)
+        else:
+            cache = []
 
         with open(filepath, 'wb') as write:
             to_cache = cache + data
