@@ -188,6 +188,7 @@ class Motor:
 
 
     def get_emails_from(self, email_address):
+        email_address = email_address[0]
         emails_list = self.email.search_filtered(email_address,
                                                  'FROM',
                                                  self.errors)

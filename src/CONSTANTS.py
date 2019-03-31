@@ -1,7 +1,11 @@
 
 PROGRAM_NAME = 'Program'
 
-DELETE_MAILBOXES = ('"[Gmail]\Trash"', 'Deleted')
+DELETE_MAILBOXES = ('"[gmail]/trash"',
+                    'deleted',
+                    'trash',
+                    '"trash"',
+                    '"deleted"')
 
 ### ACTIONS
 TOP_SENDERS = 'top_senders'
