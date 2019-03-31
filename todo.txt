@@ -1,6 +1,3 @@
-- add an action to delete an email:
-    by id
-    by sender
 - add an action to see the most 10 recent emails
 - fix the top sender per mailbox
 - change the inbox/folder naming to mailbox only

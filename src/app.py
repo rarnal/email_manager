@@ -22,6 +22,7 @@ class Motor:
         self._cacher = Cacher()
         self.max_open_connections = connections
         self.mailboxes = None
+        self.errors = {}
 
         self._parse_config(config)
 
@@ -47,9 +48,13 @@ class Motor:
 
     def _create_help_message(self):
         template = "{s:3}  {l:15}\t{t:10}\t{h}\n"
-        msg = "\nUse one of the below options\n\n[options]\n"
 
+        msg = '\n[OPTIONS]\n\n'
         for action in CONSTANTS.ACTIONS:
+            if action == CONSTANTS.SPACE:
+                msg += '\n'
+                continue
+
             data = CONSTANTS.USAGES[action]
 
             if 'type' in data['kwargs']:
@@ -75,6 +80,9 @@ class Motor:
         excl = self.parser.add_mutually_exclusive_group(required=True)
 
         for action in CONSTANTS.ACTIONS:
+            if not action:
+                continue
+
             data = CONSTANTS.USAGES[action]
             excl.add_argument(data['args']['short'],
                               data['args']['long'],
@@ -107,7 +115,9 @@ class Motor:
 
     def read_email(self, id_):
         id_ = str(id_[0]).encode()
-        email_message = self.email.get_selected_emails(id_)
+        email_message = self.email.get_selected_emails(id_, self.errors)
+        self._check_errors()
+
         self._print.print_one_email(email_message)
 
 
@@ -123,6 +133,9 @@ class Motor:
         parsed = vars(parsed)
 
         for action in CONSTANTS.ACTIONS:
+            if not action:
+                continue
+
             if parsed[action]:
                 arg = parsed[action]
                 if isinstance(arg, bool):
@@ -140,7 +153,8 @@ class Motor:
 
     def summarize_per_sender(self, top):
 
-        data = self.email.get_all_emails()
+        data = self.email.get_all_emails(self.errors)
+        self._check_errors()
 
         log.info('{} emails successfully analysed'.format(len(data)))
         log.info('Below is the top {} senders'.format(top))
@@ -148,25 +162,36 @@ class Motor:
         if data:
             self.last_search = self._print.summary_by_top_senders(data, top)
 
-    
-    def delete_emails_by_sender(self, email_address):
-        self.email.delete_emails_by_sender(email_address[0])
+
+    def delete_emails_by_sender(self, email_addresses):
+        self.email.delete_emails_by_sender(email_addresses)
 
 
     def delete_emails_by_id(self, ids):
         self.email.delete_emails_by_id(ids)
 
 
+    def _check_errors(self):
+        if self.errors:
+            self._print.errors(self.errors)
+            self.errors = {}
+
+
     def get_emails_sent_to(self, email_address):
         self.get_selected_mailbox('Sent')
         email_address = email_address[0]
-        emails_list = self.email.search_filtered(email_address, 'TO')
+        emails_list = self.email.search_filtered(email_address,
+                                                 'TO',
+                                                 self.errors)
+        self._check_errors()
         self._display_emails(emails_list)
 
 
     def get_emails_from(self, email_address):
-        email_address = email_address[0]
-        emails_list = self.email.search_filtered(email_address, 'FROM')
+        emails_list = self.email.search_filtered(email_address,
+                                                 'FROM',
+                                                 self.errors)
+        self._check_errors()
         self._display_emails(emails_list)
 
 
@@ -184,7 +209,9 @@ class Motor:
 
 
     def get_full_email_by_id(self, ids):
-        return self.email.fetch_full_email(ids)
+        res = self.email.fetch_full_email(ids, self.errors)
+        self._check_errors()
+        return res
 
 
     def get_selected_mailbox(self, mailbox_id):
@@ -210,8 +237,7 @@ class Motor:
         """
         Get a list of all the available folders in the mail box
         """
-        if not self.mailboxes:
-            self.mailboxes = self.email.get_mailboxes()
+        self.mailboxes = self.email.get_mailboxes()
 
         if display_help:
             self._print.print_mailboxes(self.mailboxes)

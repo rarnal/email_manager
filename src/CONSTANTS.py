@@ -1,6 +1,8 @@
 
 PROGRAM_NAME = 'Program'
 
+DELETE_MAILBOXES = ('"[Gmail]\Trash"', 'Deleted')
+
 ### ACTIONS
 TOP_SENDERS = 'top_senders'
 LIST_BOXES = 'boxes'
@@ -13,18 +15,26 @@ DELETE_FROM = 'delete_from'
 DELETE_CACHE = 'delete_cache'
 HELP = 'help'
 LOGOUT = 'quit'
+SPACE = None
+
 
 ACTIONS = (
-    TOP_SENDERS,
+    HELP,
+    SPACE,
     LIST_BOXES,
     SELECT_BOX,
+    SPACE,
     RECEIVED_FROM,
     SENT_TO,
     READ_EMAIL,
+    SPACE,
     DELETE_ID,
     DELETE_FROM,
+    SPACE,
     DELETE_CACHE,
-    HELP,
+    SPACE,
+    TOP_SENDERS,
+    SPACE,
     LOGOUT
 )
 
@@ -43,15 +53,15 @@ USAGES = {
         'args': {'short': "-b",
                  'long': "--{}".format(LIST_BOXES)},
         'kwargs': {'action': "store_true",
-                   'help': "Display all availables inboxes"}
+                   'help': "Display all availables mailboxes"}
     },
     SELECT_BOX:
     {
         'args': {'short': "-sb",
                  'long': "--{}".format(SELECT_BOX)},
         'kwargs': {'nargs': 1,
-                   'type': str,
-                   'help': "Select a box"}
+                   'type': int,
+                   'help': "Select mailbox [mailbox id]"}
     },
     RECEIVED_FROM:
     {
@@ -75,7 +85,7 @@ USAGES = {
                  'long': "--{}".format(READ_EMAIL)},
         'kwargs': {'nargs': 1,
                    'type': int,
-                   'help': "Display the content of email [id]"}
+                   'help': "Display the content of email [email id]"}
     },
     DELETE_ID:
     {
@@ -83,13 +93,13 @@ USAGES = {
                  'long': "--{}".format(DELETE_ID)},
         'kwargs': {'nargs': "+",
                    'type': int,
-                   'help': "Delete an email by [id]"}
+                   'help': "Delete an email [email id]"}
     },
     DELETE_FROM:
     {
         'args': {'short': "-df",
                  'long': "--{}".format(DELETE_FROM)},
-        'kwargs': {'nargs': 1,
+        'kwargs': {'nargs': "+",
                    'type': str,
                    'help': "Delete ALL emails received from [email address]"}
     },
@@ -98,7 +108,7 @@ USAGES = {
         'args': {'short': "-dc",
                  'long': "--{}".format(DELETE_CACHE)},
         'kwargs': {'action': "store_true",
-                   'help': "Delete the cache where emails headers are saved"}
+                   'help': "Delete the cache where emails are saved"}
     },
     HELP:
     {

@@ -16,6 +16,7 @@ import ssl
 
 import sys
 
+import CONSTANTS
 from progressBar import ProgressBar
 from src.logger import log
 from src.cacher import Cacher
@@ -26,6 +27,9 @@ class IMAP_SSL:
     def __init__(self):
         self.mail = None
         self.cache = Cacher()
+
+        self.current_mailbox = None
+        self.delete_mailbox = None
 
 
     def initialize(self, host_name, port,
@@ -62,7 +66,7 @@ class IMAP_SSL:
 
 
     def login(self, connections):
-        if not isinstance(connections, (list, tuple, set)):
+        if not isinstance(connections, (deque, list, tuple, set)):
             connections = [connections]
 
         for connection in connections:
@@ -79,24 +83,36 @@ class IMAP_SSL:
         return True
 
 
+    def _check_connections(self):
+        for i, conn in enumerate(self.connections):
+            if conn.check()[0] != 'OK':
+                self.connections[i] = self._open_one_connexion()
+
+
     def logout(self):
         for connection in self.connections:
+            connection.close()
             connection.logout()
         return True
 
 
     def get_mailboxes(self):
         _, res = self.connections[0].list()
-        compiler = """(\(.+\))\s(".+")\s(".+")"""
+        compiler = """(\(.+\))\s(".+")\s("?.+"?)"""
         boxes = {}
 
         for mailbox in res:
             here = re.match(compiler, mailbox.decode())
             mailbox_name = here[3]
 
-            if mailbox_name not in ('"[Gmail]"'):
+            if mailbox_name in ('"[Gmail]"',):
                 total_emails = self.connections[0].select(mailbox_name)[1][0]
                 boxes[mailbox_name] = int(total_emails)
+
+                if mailbox_name in CONSTANTS.DELETE_MAILBOXES:
+                    self.delete_mailbox = mailbox_name
+                    # TODO: fix issue we might have if the delete inbox
+                    # is not in that DELETE_MAILBOXES list
 
         return boxes
 
@@ -109,38 +125,58 @@ class IMAP_SSL:
             connections = [connections]
 
         if not box:
+            self.current_mailbox = None
             for conn in connections:
                 _, res = conn.select()
         else:
+            self.current_mailbox = box
             for conn in connections:
                 _, res = conn.select(box)
 
         return res[0]
 
-    
-    def delete_emails_by_sender(self, email_address):
-        ids = self._search('FROM', email_address)
-        self.delete_emails_by_id(ids[0].split())
+
+    def delete_emails_by_sender(self, email_addresses):
+        ids = []
+        for email_address in email_addresses:
+            ids += self._search('FROM', email_address)[0].split()
+
+        self.delete_emails_by_id(ids)
 
 
-    def delete_emails_by_id(self, ids):
-        if isinstance(ids, (int, bytes)):
-            ids = [ids]
-        
-        bar = ProgressBar(len(ids), "Deleting {} emails...".format(len(ids)), size=40)
-        for id_ in ids:
-            self.connections[0].uid('store', id_, '+FLAGS', '\\Deleted')
+    def delete_emails_by_id(self, email_ids):
+        if isinstance(email_ids, (int, bytes)):
+            email_ids = [email_ids]
+
+        if not email_ids:
+            return None
+
+        bar = ProgressBar(len(email_ids),
+                          "Deleting {} emails...".format(len(email_ids)),
+                          size=40)
+
+        # I haven't been able delete emails by threading
+        # Getting a error 32 broken pipe error
+        # One by one is slow but works
+        for email_id in email_ids:
+            self._delete_one_email(email_id)
             bar += 1
 
-        self._expunge_mailbox() 
+        self._expunge_mailbox()
 
         cached = self._get_cached_email_headers()
-        cached = [msg for msg in cached if msg.id not in ids]
+        cached = [msg for msg in cached if msg.id not in email_ids]
         self.cache.add(cached, self.email_address, overwrite=True)
 
-        
+
+    def _delete_one_email(self, id_):
+        self.connections[0].uid('copy', id_, self.delete_mailbox)
+        self.connections[0].uid('store', id_, '+FLAGS', '\\Deleted')
+
+
     def _expunge_mailbox(self):
-        print(self.connections[0].expunge())
+        _, res = self.connections[0].expunge()
+        log.info("{} emails deleted !".format(len(res)))
 
 
     def get_quota(self):
@@ -153,7 +189,7 @@ class IMAP_SSL:
         return res
 
 
-    def search_filtered(self, string, filter):
+    def search_filtered(self, string, filter, errors):
         email_ids = self._search(filter, string)
         if not email_ids[0]:
             return None
@@ -168,13 +204,16 @@ class IMAP_SSL:
                 cached_emails_filtered.append(cached_email)
                 email_ids.discard(cached_email.id)
 
-        downloaded_emails = self._fetch_emails(email_ids, '(RFC822.HEADER)')
+        downloaded_emails = self._fetch_emails(email_ids,
+                                               '(RFC822.HEADER)',
+                                               errors)
+
         self.cache.add(downloaded_emails, self.email_address)
 
         return downloaded_emails + cached_emails_filtered
 
 
-    def get_all_emails(self):
+    def get_all_emails(self, errors):
         email_ids = self._search(None, 'ALL')
         if not email_ids[0]:
             return None
@@ -187,14 +226,17 @@ class IMAP_SSL:
             if cached_email.id in email_ids:
                 email_ids.discard(cached_email.id)
 
-        downloaded_emails = self._fetch_emails(email_ids, '(RFC822.HEADER)')
+        downloaded_emails = self._fetch_emails(email_ids,
+                                               '(RFC822.HEADER)',
+                                               errors)
+
         self.cache.add(downloaded_emails, self.email_address)
 
         return downloaded_emails + cached_emails
 
 
-    def get_selected_emails(self, ids):
-        downloaded_emails = self._fetch_emails(ids, '(RFC822)')
+    def get_selected_emails(self, ids, errors):
+        downloaded_emails = self._fetch_emails(ids, '(RFC822)', errors)
         return downloaded_emails
 
 
@@ -203,27 +245,30 @@ class IMAP_SSL:
         return emails
 
 
-    def _fetch_emails(self, email_ids, formatting):
+    def _fetch_emails(self, email_ids, formatting, errors):
         if not email_ids:
             return []
 
         if isinstance(email_ids, bytes):
             email_ids = [email_ids]
 
-        raw_emails = self._download_emails(email_ids, formatting)
+        raw_emails = self._download_emails(email_ids, formatting, errors)
 
         if not raw_emails:
             return []
 
-        return self._parse_emails(raw_emails)
+        return self._parse_emails(raw_emails, errors)
 
 
-    def _download_emails(self, email_ids, formatting):
+    def _download_emails(self, email_ids, formatting, errors):
         out = []
         log.info("Processing {} emails...".format(len(email_ids)))
         bar = ProgressBar(len(email_ids), "Downloading new emails...", size=40)
 
-        with futures.ThreadPoolExecutor(max(1, self.max_connexions)) as executor:
+        self._check_connections()
+        nb_workers = max(1, self.max_connexions)
+
+        with futures.ThreadPoolExecutor(nb_workers) as executor:
 
             todo = (
                 executor.submit(self._fetch_one_email, email_id, formatting)
@@ -234,9 +279,10 @@ class IMAP_SSL:
                 try:
                     res = ready.result()
                 except Exception as error:
-                    # the 100 spaces help to "erase" the progress bar
-                    log.error("One email was not correctly downloaded: "
-                              "{}{}".format(error, ' ' * 100))
+                    error = "Download error: " + str(error)
+                    if error not in errors:
+                        errors[error] = 0
+                    errors[error] += 1
                     res = None
 
                 if res:
@@ -247,7 +293,7 @@ class IMAP_SSL:
         return out
 
 
-    def _parse_emails(self, raw_emails):
+    def _parse_emails(self, raw_emails, errors):
         parsed_emails = []
         bar = ProgressBar(len(raw_emails), "Parsing emails...", size=40)
 
@@ -255,8 +301,10 @@ class IMAP_SSL:
             try:
                 parsed_emails.append(self._parse_email(email_id, email_raw))
             except Exception as error:
-                log.error("One email could not be parsed:{}\n"
-                          "{}".format(' ' * 100, error))
+                error = "Parsing error: " + str(error)
+                if error not in errors:
+                    errors[error] = 0
+                errors[error] += 1
             bar += 1
 
         return parsed_emails
@@ -277,14 +325,9 @@ class IMAP_SSL:
 
 
     def _parse_email(self, email_id, email_raw):
-        try:
-            parsed_email = email.parser \
-                                .BytesParser() \
-                                .parsebytes(email_raw)
-        except AttributeError as error:
-            raise AttributeError("{} : {}\n{}".format(email_id,
-                                                      error,
-                                                      email_raw))
+        parsed_email = email.parser \
+                            .BytesParser() \
+                            .parsebytes(email_raw)
 
         parsed_email = self._transform_parsed_email(email_id, parsed_email)
         return parsed_email

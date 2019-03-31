@@ -60,6 +60,23 @@ class Printer:
         print(email_msg.content.decode(errors='replace'))
 
 
+    def errors(self, errors):
+        template = "{count:>5} | {error:<}"
+
+        print()
+        print('=' * 100)
+
+        print("{} errors happened\n"
+              .format(sum(errors.values())))
+
+        print(template.format(count="Count", error="Details"))
+        for error, count in errors.items():
+            print(template.format(count=count, error=error))
+
+        print('=' * 100)
+        print()
+
+
     @staticmethod
     def _formatize_date(date):
         return date.strftime("%Y-%m-%d at %T")
