@@ -52,6 +52,7 @@ class Printer:
             'Date': email_msg.date
         }
 
+        print()
         for title, content in header.items():
             if content:
                 print(title, ':', content)
@@ -92,12 +93,13 @@ class Printer:
         return out
 
 
-    def print_mailboxes(self, mailboxes):
+    def print_mailboxes(self, mailboxes, current_mailbox):
         max_size_name = max(len(x[0]) for x in mailboxes.items())
         template = "{id:2} | {name:<{max_size}} | {count:<}"
 
         print("Here is all the available mailboxes on your account\n"
-              "You can select any of them using -sb ID\n")
+              "You can select any of them using -sb ID\n\n"
+              "Mailbox: {}\n".format(current_mailbox))
 
         title = template.format(id="ID",
                                 name="Name",

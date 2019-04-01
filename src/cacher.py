@@ -12,7 +12,7 @@ class Cacher:
             os.mkdir(self.dir_)
 
 
-    def add(self, data, email_address, overwrite=False):
+    def add(self, data, email_address, mailbox, overwrite=False):
         filepath = self._create_file_path(email_address)
 
         if not os.path.exists(filepath):
@@ -20,18 +20,24 @@ class Cacher:
             f.close()
 
         if not overwrite:
-            cache = self.load(email_address)
+            cache = self.load(email_address, mailbox)
+            if not cache:
+                cache = {}  #  self.load normally returns an empty list
         else:
-            cache = []
+            cache = {}
+
+        if mailbox not in cache:
+            cache[mailbox] = []
+
+        cache[mailbox].append(data)
 
         with open(filepath, 'wb') as write:
-            to_cache = cache + data
-            pickle.dump(to_cache, write)
+            pickle.dump(cache, write)
 
         return True
 
 
-    def load(self, email_address):
+    def load(self, email_address, mailbox):
         filepath = self._create_file_path(email_address)
 
         if not os.path.exists(filepath) or not os.path.getsize(filepath):
@@ -40,7 +46,9 @@ class Cacher:
         with open(filepath, 'rb') as file_:
             data = pickle.load(file_)
 
-        return data
+        if mailbox in data:
+            return data[mailbox]
+        return []
 
 
     def delete_cache(self, email_address):

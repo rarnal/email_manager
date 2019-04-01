@@ -11,6 +11,7 @@ DELETE_MAILBOXES = ('"[gmail]/trash"',
 TOP_SENDERS = 'top_senders'
 LIST_BOXES = 'boxes'
 SELECT_BOX = 'select_box'
+LAST_EMAIL = 'last_emails'
 RECEIVED_FROM = 'from'
 SENT_TO = 'to'
 READ_EMAIL = 'read'
@@ -28,9 +29,11 @@ ACTIONS = (
     LIST_BOXES,
     SELECT_BOX,
     SPACE,
+#    LAST_EMAIL,
+    READ_EMAIL,
+    SPACE,
     RECEIVED_FROM,
     SENT_TO,
-    READ_EMAIL,
     SPACE,
     DELETE_ID,
     DELETE_FROM,
@@ -45,6 +48,7 @@ ACTIONS = (
 USAGES = {
     TOP_SENDERS:
     {
+        'actif': True,
         'args': {'short': "-ts",
                  'long': "--{}".format(TOP_SENDERS)},
         'kwargs': {'nargs': '?',
@@ -54,6 +58,7 @@ USAGES = {
     },
     LIST_BOXES:
     {
+        'actif': True,
         'args': {'short': "-b",
                  'long': "--{}".format(LIST_BOXES)},
         'kwargs': {'action': "store_true",
@@ -61,14 +66,26 @@ USAGES = {
     },
     SELECT_BOX:
     {
+        'actif': True,
         'args': {'short': "-sb",
                  'long': "--{}".format(SELECT_BOX)},
         'kwargs': {'nargs': 1,
                    'type': int,
                    'help': "Select mailbox [mailbox id]"}
     },
+    LAST_EMAIL:
+    {
+        'actif': False,
+        'args': {'short': "-le",
+                 'long': "--last-emails"},
+        'kwargs': {'nargs': '?',
+                   'type': int,
+                   'const': 10,
+                   'help': "Get last [int] emails received (last 10 by default)"}
+    },
     RECEIVED_FROM:
     {
+        'actif': True,
         'args': {'short': "-f",
                  'long': "--{}".format(RECEIVED_FROM)},
         'kwargs': {'nargs': 1,
@@ -77,6 +94,7 @@ USAGES = {
     },
     SENT_TO:
     {
+        'actif': True,
         'args': {'short': "-t",
                  'long': "--{}".format(SENT_TO)},
         'kwargs': {'nargs': 1,
@@ -85,6 +103,7 @@ USAGES = {
     },
     READ_EMAIL:
     {
+        'actif': True,
         'args': {'short': "-r",
                  'long': "--{}".format(READ_EMAIL)},
         'kwargs': {'nargs': 1,
@@ -93,6 +112,7 @@ USAGES = {
     },
     DELETE_ID:
     {
+        'actif': True,
         'args': {'short': "-di",
                  'long': "--{}".format(DELETE_ID)},
         'kwargs': {'nargs': "+",
@@ -101,6 +121,7 @@ USAGES = {
     },
     DELETE_FROM:
     {
+        'actif': True,
         'args': {'short': "-df",
                  'long': "--{}".format(DELETE_FROM)},
         'kwargs': {'nargs': "+",
@@ -109,6 +130,7 @@ USAGES = {
     },
     DELETE_CACHE:
     {
+        'actif': True,
         'args': {'short': "-dc",
                  'long': "--{}".format(DELETE_CACHE)},
         'kwargs': {'action': "store_true",
@@ -116,6 +138,7 @@ USAGES = {
     },
     HELP:
     {
+        'actif': True,
         'args': {'short': "-h",
                  'long': "--{}".format(HELP)},
         'kwargs': {'action': "store_true",
@@ -123,6 +146,7 @@ USAGES = {
     },
     LOGOUT:
     {
+        'actif': True,
         'args': {'short': "-q",
                  'long': "--{}".format(LOGOUT)},
         'kwargs': {'action': "store_true",

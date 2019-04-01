@@ -23,6 +23,7 @@ class Motor:
         self.max_open_connections = connections
         self.mailboxes = None
         self.errors = {}
+        self.timestamp = datetime.datetime.now()
 
         self._parse_config(config)
 
@@ -99,6 +100,10 @@ class Motor:
                 continue
 
             data = CONSTANTS.USAGES[action]
+
+            if not data['actif']:
+                continue
+
             excl.add_argument(data['args']['short'],
                               data['args']['long'],
                               **data['kwargs'])
@@ -141,7 +146,7 @@ class Motor:
         """
         Read the email provided by its id
         """
-        email_id = str(id_[0]).encode()
+        email_id = str(email_id[0]).encode()
         email_message = self.email.get_selected_emails(email_id, self.errors)
         self._check_errors()
 
@@ -163,6 +168,11 @@ class Motor:
             return False
 
         parsed = vars(parsed)
+
+        now = datetime.datetime.now()
+        if (now - self.timestamp).total_seconds() > 60:
+            self.email.check_connections()
+        self.timestamp = now
 
         for action in CONSTANTS.ACTIONS:
             if not action:
@@ -202,7 +212,8 @@ class Motor:
 
     def delete_emails_by_sender(self, email_addresses):
         """
-        Delete all emails received from email_address and available in current mailbox
+        Delete all emails received from email_address
+        and available in current mailbox
         """
         self.email.delete_emails_by_sender(email_addresses)
 
@@ -305,7 +316,15 @@ class Motor:
         self.mailboxes = self.email.get_mailboxes()
 
         if display_help:
-            self._print.print_mailboxes(self.mailboxes)
+            self._print.print_mailboxes(self.mailboxes,
+                                        self.email.current_mailbox)
+
+
+    def get_last_emails(self, nb):
+        """
+        Get & display a sumary of the last nb emails received
+        """
+        pass
 
 
     def get_storage_info(self):

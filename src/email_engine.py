@@ -35,7 +35,6 @@ class IMAP_SSL:
         """
         Initialize nb connections to the host and log them in
         """
-
         self.host_name = host_name
         self.port = port
         self.email_address = email_address
@@ -94,7 +93,7 @@ class IMAP_SSL:
         return True
 
 
-    def _check_connections(self):
+    def check_connections(self):
         """
         Check if all connections are still functionnal.
         If not, create a new one
@@ -136,6 +135,8 @@ class IMAP_SSL:
                     # TODO: fix issue we might have if the delete inbox
                     # is not in that DELETE_MAILBOXES list
 
+        self.select_inbox(mailbox=self.current_mailbox,
+                          connections=self.connections[0])
         return boxes
 
 
@@ -198,7 +199,10 @@ class IMAP_SSL:
 
         cached = self._get_cached_email_headers()
         cached = [msg for msg in cached if msg.id not in email_ids]
-        self.cache.add(cached, self.email_address, overwrite=True)
+        self.cache.add(cached,
+                       self.email_address,
+                       self.current_mailbox,
+                       overwrite=True)
 
 
     def _delete_one_email(self, id_):
@@ -234,6 +238,14 @@ class IMAP_SSL:
         return res
 
 
+    def get_last_emails(nb):
+        """
+        Retrive last xx emails received in the default mailbox (inbox)
+        """
+
+        self.sele
+
+
     def search_filtered(self, string, filter, errors):
         """
         Return headers of all emails matching the given search.
@@ -257,7 +269,9 @@ class IMAP_SSL:
                                                '(RFC822.HEADER)',
                                                errors)
 
-        self.cache.add(downloaded_emails, self.email_address)
+        self.cache.add(downloaded_emails,
+                       self.email_address,
+                       self.current_mailbox)
 
         return downloaded_emails + cached_emails_filtered
 
@@ -286,7 +300,9 @@ class IMAP_SSL:
                                                '(RFC822.HEADER)',
                                                errors)
 
-        self.cache.add(downloaded_emails, self.email_address)
+        self.cache.add(downloaded_emails,
+                       self.email_address,
+                       self.current_mailbox)
 
         return downloaded_emails + to_return
 
@@ -303,7 +319,7 @@ class IMAP_SSL:
         """
         Return all the emails we have cached for the current user
         """
-        emails = self.cache.load(self.email_address)
+        emails = self.cache.load(self.email_address, self.current_mailbox)
         return emails
 
 
@@ -334,8 +350,6 @@ class IMAP_SSL:
         log.info("Processing {} emails...".format(len(email_ids)))
         bar = ProgressCounter(total=len(email_ids),
                               name="Downloading emails")
-
-        self._check_connections()
 
         with futures.ThreadPoolExecutor(len(self.connections)) as executor:
 
