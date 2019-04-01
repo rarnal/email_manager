@@ -35,6 +35,10 @@ class Motor:
 
 
     def run(self):
+        """
+        Put the user in its biggest mailbox and display the help message
+        before running the command center
+        """
         self.get_all_mailboxes(display_help=False)
         self.select_bigger_mailbox()
         self.display_help()
@@ -42,11 +46,17 @@ class Motor:
 
 
     def select_bigger_mailbox(self):
+        """
+        Search through all mailboxes the biggest one and log in it
+        """
         bigger = max(self.mailboxes, key=lambda x: self.mailboxes[x])
         self.email.select_inbox(bigger)
 
 
     def _create_help_message(self):
+        """
+        Create the help message to display to user when needed
+        """
         template = "{s:3}  {l:15}\t{t:10}\t{h}\n"
 
         msg = '\n[OPTIONS]\n\n'
@@ -74,6 +84,11 @@ class Motor:
 
 
     def _create_parser(self):
+        """
+        Create the parser we will use to parse arguments.
+        It will be used interactively so had to customize a bunch of things
+        like the help message
+        """
         self.parser = argparse.ArgumentParser(prog=CONSTANTS.PROGRAM_NAME,
                                               add_help=False)
 
@@ -90,6 +105,9 @@ class Motor:
 
 
     def _assign_arg_to_command(self):
+        """
+        Register all commands that can be actionnated by the user
+        """
         self.commands = {
             CONSTANTS.TOP_SENDERS: self.summarize_per_sender,
             CONSTANTS.LIST_BOXES: self.get_all_mailboxes,
@@ -106,22 +124,36 @@ class Motor:
 
 
     def display_help(self):
+        """
+        Print the help message
+        """
         print(self.help_message)
 
 
     def delete_cache(self):
+        """
+        Delete the cache for the current user
+        """
         self._cacher.delete_cache(self.email_address)
 
 
-    def read_email(self, id_):
-        id_ = str(id_[0]).encode()
-        email_message = self.email.get_selected_emails(id_, self.errors)
+    def read_email(self, email_id):
+        """
+        Read the email provided by its id
+        """
+        email_id = str(id_[0]).encode()
+        email_message = self.email.get_selected_emails(email_id, self.errors)
         self._check_errors()
 
         self._print.print_one_email(email_message)
 
 
     def parse_answer(self, answer):
+        """
+        Parse the command received from user.
+        We use the parser interactively so we make sure the system doesn't exit
+        on error and that default error message doesn't show up
+        """
         try:
             f = io.StringIO()
             with contextlib.redirect_stderr(f):
@@ -144,6 +176,9 @@ class Motor:
 
 
     def command_center(self):
+        """
+        Infinite loop for receiving actions from user
+        """
         while self.status == 'ON':
             answer = self._print.main_menu()
 
@@ -152,7 +187,9 @@ class Motor:
 
 
     def summarize_per_sender(self, top):
-
+        """
+        Summarize all emails per top senders
+        """
         data = self.email.get_all_emails(self.errors)
         self._check_errors()
 
@@ -164,20 +201,32 @@ class Motor:
 
 
     def delete_emails_by_sender(self, email_addresses):
+        """
+        Delete all emails received from email_address and available in current mailbox
+        """
         self.email.delete_emails_by_sender(email_addresses)
 
 
-    def delete_emails_by_id(self, ids):
-        self.email.delete_emails_by_id(ids)
+    def delete_emails_by_id(self, email_ids):
+        """
+        Delete the emails whose IDs has been provided
+        """
+        self.email.delete_emails_by_id(email_ids)
 
 
     def _check_errors(self):
+        """
+        Display the errors if any error has been caught
+        """
         if self.errors:
             self._print.errors(self.errors)
             self.errors = {}
 
 
     def get_emails_sent_to(self, email_address):
+        """
+        Get and display all the emails sent to a specific person
+        """
         self.get_selected_mailbox('Sent')
         email_address = email_address[0]
         emails_list = self.email.search_filtered(email_address,
@@ -188,6 +237,9 @@ class Motor:
 
 
     def get_emails_from(self, email_address):
+        """
+        Get and display all the emails received from a specific person
+        """
         email_address = email_address[0]
         emails_list = self.email.search_filtered(email_address,
                                                  'FROM',
@@ -197,6 +249,9 @@ class Motor:
 
 
     def _display_emails(self, emails_list):
+        """
+        Display all emails provided in the emails_list
+        """
         if not emails_list:
             log.info("No emails were retrieved")
         else:
@@ -206,16 +261,25 @@ class Motor:
 
 
     def get_summary_email_by_id(self, ids):
+        """
+        I think this function is not used anymore. To be deletel if useless ?
+        """
         return self.email.fetch_header_email(ids)
 
 
     def get_full_email_by_id(self, ids):
+        """
+        useless ?
+        """
         res = self.email.fetch_full_email(ids, self.errors)
         self._check_errors()
         return res
 
 
     def get_selected_mailbox(self, mailbox_id):
+        """
+        Log in the selected mailbox
+        """
         if not self.mailboxes:
             self.get_all_mailboxes(display_help=False)
 
@@ -245,16 +309,25 @@ class Motor:
 
 
     def get_storage_info(self):
+        """
+        Display memory usage for the whole account
+        """
         return self.email.get_quota()
 
 
     def logout(self):
+        """
+        Log out all the active connections
+        """
         self.email.logout()
         log.info("Connexion successfully closed !")
         self.status = 'OFF'
 
 
     def _connect(self):
+        """
+        Initialize the email engine and connect to all connections
+        """
         log.info("Logging in as {}...".format(self.email_address))
         self.email.initialize(self.host_name,
                               self.port,
@@ -266,10 +339,16 @@ class Motor:
 
 
     def _initialize_email_engine(self):
+        """
+        Create an instance of the email_engine
+        """
         self.email = self.email_engine_class()
 
 
     def _parse_config(self, config):
+        """
+        Parse the config yaml file
+        """
         self.host_name = config['host']
         self.port = config['port']
         self.email_address = config['email_address']
