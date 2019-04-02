@@ -1,11 +1,5 @@
 import configparser
 import os
-from src import email_engine
-
-try:
-    from yaml import CLoader as Loader, CDumper as Dumper
-except ImportError:
-    from yaml import Loader, Dumper
 
 
 def get_config(source=None):
