@@ -1,6 +1,11 @@
 import yaml
 from src import email_engine
 
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
+
 
 def get_config(source=None):
     """
@@ -11,13 +16,10 @@ def get_config(source=None):
         source = 'config.yaml'
 
     with open(source) as stream:
-        config = yaml.load(stream)
+        config = yaml.load(stream, Loader=Loader)
 
         if config['server_type'] == 'imap':
-            if config['ssl']:
-                config['email_access_class'] = email_engine.IMAP_SSL
-            else:
-                config['email_access_class'] = email_engine.IMAP
+            config['email_access_class'] = email_engine.IMAP_SSL
         else:
             raise ValueError("Unknown server type: {}".format(
                              config['server_type']))
@@ -27,8 +29,7 @@ def get_config(source=None):
 
 
 def sort_emails_by_date(emails_list):
-    # TODO implement a better algorythm if not efficient enough
-    sorted_emails = sorted(emails_list, key= lambda msg: msg.date, reverse=True)
+    sorted_emails = sorted(emails_list, key=lambda msg: msg.date, reverse=True)
     return sorted_emails
 
 

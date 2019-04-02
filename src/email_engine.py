@@ -186,8 +186,7 @@ class IMAP_SSL:
             return None
 
         bar = ProgressCounter(len(email_ids), "Deleting {} emails"
-                              .format(len(email_ids)),
-                              percentage=True)
+                              .format(len(email_ids)))
         # I haven't been able delete emails by threading
         # Getting a error 32 broken pipe error
         # Processing them one by one might be slow but at least it works

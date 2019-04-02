@@ -171,6 +171,7 @@ class Motor:
 
         now = datetime.datetime.now()
         if (now - self.timestamp).total_seconds() > 60:
+            log.info("checking connection status")
             self.email.check_connections()
         self.timestamp = now
 
@@ -338,6 +339,7 @@ class Motor:
         """
         Log out all the active connections
         """
+        log.info("Closing all connections...")
         self.email.logout()
         log.info("Connexion successfully closed !")
         self.status = 'OFF'

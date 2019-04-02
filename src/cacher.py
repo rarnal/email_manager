@@ -20,7 +20,7 @@ class Cacher:
             f.close()
 
         if not overwrite:
-            cache = self.load(email_address, mailbox)
+            cache = self.load(email_address, mailbox, partial=True)
             if not cache:
                 cache = {}  #  self.load normally returns an empty list
         else:
@@ -29,7 +29,7 @@ class Cacher:
         if mailbox not in cache:
             cache[mailbox] = []
 
-        cache[mailbox].append(data)
+        cache[mailbox] += data
 
         with open(filepath, 'wb') as write:
             pickle.dump(cache, write)
@@ -37,7 +37,7 @@ class Cacher:
         return True
 
 
-    def load(self, email_address, mailbox):
+    def load(self, email_address, mailbox, partial=False):
         filepath = self._create_file_path(email_address)
 
         if not os.path.exists(filepath) or not os.path.getsize(filepath):
@@ -46,8 +46,12 @@ class Cacher:
         with open(filepath, 'rb') as file_:
             data = pickle.load(file_)
 
+        if partial:
+            return data
+
         if mailbox in data:
             return data[mailbox]
+
         return []
 
 
