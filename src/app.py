@@ -7,6 +7,7 @@ import contextlib
 
 from collections import Counter
 
+from src import email_engine
 from src import CONSTANTS
 from src.logger import log
 from src.printer import Printer
@@ -15,17 +16,19 @@ from src.cacher import Cacher
 
 class Motor:
 
-    def __init__(self, config, connections=15):
+    def __init__(self, config):
+        self.config = config
         self.last_search = None
         self.status = 'ON'
         self._print = Printer()
         self._cacher = Cacher()
-        self.max_open_connections = connections
+        self.max_open_connections = None
         self.mailboxes = None
         self.errors = {}
         self.timestamp = datetime.datetime.now()
 
-        self._parse_config(config)
+        self.choose_account()
+        self._parse_config()
 
         self._initialize_email_engine()
         self._connect()
@@ -171,7 +174,6 @@ class Motor:
 
         now = datetime.datetime.now()
         if (now - self.timestamp).total_seconds() > 60:
-            log.info("checking connection status")
             self.email.check_connections()
         self.timestamp = now
 
@@ -339,7 +341,6 @@ class Motor:
         """
         Log out all the active connections
         """
-        log.info("Closing all connections...")
         self.email.logout()
         log.info("Connexion successfully closed !")
         self.status = 'OFF'
@@ -363,20 +364,32 @@ class Motor:
         """
         Create an instance of the email_engine
         """
-        self.email = self.email_engine_class()
+        if self.logins['server_type'] == 'imap':
+            self.email = email_engine.IMAP_SSL()
+        else:
+            raise TypeError("The app only accepts imap server as of now.\n"
+                            "Be sure the config file is correct")
 
 
-    def _parse_config(self, config):
+    def choose_account(self):
+        if len(self.config.sections()) == 1:
+            account = self.config.sections()[0]
+        else:
+            account = self._print.choose_account(self.config)
+
+        self.logins = account
+
+
+    def _parse_config(self):
         """
         Parse the config yaml file
         """
-        self.host_name = config['host']
-        self.port = config['port']
-        self.email_address = config['email_address']
-        self.password = config['password']
-        self.name = config['name']
-        self.server_type = config['server_type']
-        self.ssl = config['ssl']
-        self.max_open_connections = config['maximum_open_connexions']
-        self.email_engine_class = config['email_access_class']
+        self.host_name = self.logins['server_address']
+        self.port = self.logins['port']
+        self.email_address = self.logins.name
+        self.password = self.logins['password']
+        self.server_type = self.logins['server_type']
+        self.ssl = self.logins.getboolean('ssl')
+        self.max_open_connections = int(self.logins['max_open_connections'])
+
 

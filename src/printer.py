@@ -114,6 +114,33 @@ class Printer:
                                   max_size=max_size_name))
 
 
+    def choose_account(self, config):
+        print("Which account would you like to log into ?\n")
+
+        choices = []
+        for email_address in config:
+            if email_address != 'DEFAULT':
+                print("{} - {}".format(len(choices) + 1, email_address))
+                choices.append(email_address)
+
+        print()
+        answer = input()
+
+        while True:
+            if answer in choices:
+                return config[answer]
+
+            if answer.isdigit() and 0 < int(answer) <= len(choices):
+                return config[choices[int(answer) - 1]]
+
+            answer = input("\nSorry, I haven't understood your choice.\n"
+                           "Please try again:\n")
+
+        return answer
+
+
+
+
     def _get_email_content(self, email_msg):
         email_msg = email_msg[0]
         type_ = email_msg.get_content_maintype()

@@ -1,4 +1,5 @@
-import yaml
+import configparser
+import os
 from src import email_engine
 
 try:
@@ -13,18 +14,14 @@ def get_config(source=None):
     """
 
     if not source:
-        source = 'config.yaml'
+        source = 'config.ini'
 
-    with open(source) as stream:
-        config = yaml.load(stream, Loader=Loader)
+    if not os.path.exists(source):
+        raise ValueError("The file config.ini could not be found")
 
-        if config['server_type'] == 'imap':
-            config['email_access_class'] = email_engine.IMAP_SSL
-        else:
-            raise ValueError("Unknown server type: {}".format(
-                             config['server_type']))
-
-        return config
+    config = configparser.ConfigParser()
+    config.read(source)
+    return config
 
 
 
