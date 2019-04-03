@@ -12,17 +12,17 @@ If you are like me:
 - You never clean your emails
 
 But even if you don't need them, those emails are stored somewhere.
-They consumme memory and energy for basically nothing. I thought it would be nice to get rid of them anyway.
+They consumme memory and energy for basically nothing.
 
 So I decided to make a small application to target and delete them easily.
 
 This application will allow you to:
-    - Check how many emails are _sleeping_ in your account
-    - Summarize them by sender
-    - Search for emails and display a summary of each emails
-    - Read those emails
-    - Delete email individually or by batch
-    - See what a buggy application looks like
+- Check how many emails are _sleeping_ in your account
+- Summarize them by sender
+- Search for emails and display a summary of each emails
+- Read those emails
+- Delete email individually or by batch
+- See what a buggy application looks like
 
 There's probably some other applications that will allow you to do the above
 stuff much faster and easily than my application, but hey it's working and I
