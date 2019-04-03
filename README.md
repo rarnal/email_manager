@@ -37,7 +37,7 @@ were my biggest spammers.
 To run this application, you only need python3. I made sure to only use
 package from the standard librairy.
 
-Just clone or download the repository on your computer and launch main.py
+Just clone or download the repository on your computer and run main.py with python3.
 
 You will need to insert your login information in the config.ini file.
 Note that you can store several logins in that file.
