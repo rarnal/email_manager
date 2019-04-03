@@ -1,7 +1,0 @@
-- The way IMAP manage UID is a terrible mess. A different UID will be given to an email depending on the mailbox.
-  Furthermore that UID might apparently change in case the IMAP loses it indexes or something (seems quite rare though)
-  What is sure is that a UID will never refer to a different message.
-  It will either stay valid and point to the same email or become invalid.
-
-- The above issue is causing me problem because when I delete emails in a specific mailbox, I have no way to find that email
-  in other mailbox (the UID is different). So that email will still appear if we look in another mail

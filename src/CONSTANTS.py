@@ -19,6 +19,7 @@ DELETE_ID = 'delete_id'
 DELETE_FROM = 'delete_from'
 DELETE_CACHE = 'delete_cache'
 HELP = 'help'
+RESET = 'reset'
 LOGOUT = 'quit'
 SPACE = None
 
@@ -42,6 +43,7 @@ ACTIONS = (
     SPACE,
     TOP_SENDERS,
     SPACE,
+    RESET,
     LOGOUT
 )
 
@@ -117,7 +119,8 @@ USAGES = {
                  'long': "--{}".format(DELETE_ID)},
         'kwargs': {'nargs': "+",
                    'type': int,
-                   'help': "Delete an email [email id]"}
+                   'help': "Delete an email [email id]\n" \
+                           "You can put several ids separated by a space"}
     },
     DELETE_FROM:
     {
@@ -126,7 +129,8 @@ USAGES = {
                  'long': "--{}".format(DELETE_FROM)},
         'kwargs': {'nargs': "+",
                    'type': str,
-                   'help': "Delete ALL emails received from [email address]"}
+                   'help': "Delete ALL emails received from [email address]" \
+                           "\nYou can put several addresses separated by a space"}
     },
     DELETE_CACHE:
     {
@@ -143,6 +147,13 @@ USAGES = {
                  'long': "--{}".format(HELP)},
         'kwargs': {'action': "store_true",
                    'help': "Get a description of each actions"}
+    },
+    RESET: {
+        'actif': True,
+        'args': {'short': '-rc',
+                 'long': "--{}".format(RESET)},
+        'kwargs': {'action': "store_true",
+                   'help': "Reset all connections"}
     },
     LOGOUT:
     {

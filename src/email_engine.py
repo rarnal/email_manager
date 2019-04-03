@@ -205,14 +205,14 @@ class IMAP_SSL:
                        overwrite=True)
 
 
-    def _delete_one_email(self, id_):
+    def _delete_one_email(self, email_id):
         """
         Mark a single email as to be deleted by:
             moving it to the "delete" mailbox
             flagging it as "deleted"
         """
-        self.connections[0].uid('copy', id_, self.delete_mailbox)
-        self.connections[0].uid('store', id_, '+FLAGS', '\\Deleted')
+        self.connections[0].uid('copy', email_id, self.delete_mailbox)
+        self.connections[0].uid('store', email_id, '+FLAGS', '\\Deleted')
 
 
     def _expunge_mailbox(self):

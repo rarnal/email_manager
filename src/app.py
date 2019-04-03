@@ -80,10 +80,16 @@ class Motor:
             else:
                 type_ = ''
 
-            msg += template.format(s=data['args']['short'],
-                                   l=data['args']['long'],
-                                   t=type_,
-                                   h=data['kwargs']['help'])
+            short, full = data['args']['short'], data['args']['long']
+
+            for part in data['kwargs']['help'].split('\n'):
+                msg += template.format(s=short,
+                                       l=full,
+                                       t=type_,
+                                       h=part)
+
+                short, full, type_ = '', '', ''
+
         self.help_message = msg
 
 
@@ -127,6 +133,7 @@ class Motor:
             CONSTANTS.DELETE_FROM: self.delete_emails_by_sender,
             CONSTANTS.DELETE_CACHE: self.delete_cache,
             CONSTANTS.HELP: self.display_help,
+            CONSTANTS.RESET: self.reset,
             CONSTANTS.LOGOUT: self.logout
         }
 
@@ -196,7 +203,13 @@ class Motor:
             answer = self._print.main_menu()
 
             if answer:
-                self.parse_answer(answer)
+                try:
+                    self.parse_answer(answer)
+                except Exception as error:
+                    print("An unexpected error happened:\n"
+                          "{}\n"
+                          "If it's related to connections, you can reset them"
+                          " with the command -rc".format(error))
 
 
     def summarize_per_sender(self, top):
@@ -206,7 +219,7 @@ class Motor:
         data = self.email.get_all_emails(self.errors)
         self._check_errors()
 
-        log.info('{} emails successfully analysed'.format(len(data)))
+        log.info('\n{} emails successfully analysed'.format(len(data)))
         log.info('Below is the top {} senders'.format(top))
 
         if data:
@@ -218,6 +231,7 @@ class Motor:
         Delete all emails received from email_address
         and available in current mailbox
         """
+        self.look_for_delete_mailboxes()
         self.email.delete_emails_by_sender(email_addresses)
 
 
@@ -225,7 +239,14 @@ class Motor:
         """
         Delete the emails whose IDs has been provided
         """
+        self.look_for_delete_mailboxes()
         self.email.delete_emails_by_id(email_ids)
+
+
+    def look_for_delete_mailboxes(self):
+        if not self.email.delete_mailbox:
+            mailbox = self._print.ask_for_delete_mailbox(self.mailboxes)
+            self.email.delete_mailbox = mailbox
 
 
     def _check_errors(self):
@@ -335,6 +356,10 @@ class Motor:
         Display memory usage for the whole account
         """
         return self.email.get_quota()
+
+    def reset(self):
+        self.email.logout()
+        self._connect()
 
 
     def logout(self):

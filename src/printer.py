@@ -99,7 +99,7 @@ class Printer:
 
         print("Here is all the available mailboxes on your account\n"
               "You can select any of them using -sb ID\n\n"
-              "Mailbox: {}\n".format(current_mailbox))
+              "Currently selected mailbox: {}\n".format(current_mailbox))
 
         title = template.format(id="ID",
                                 name="Name",
@@ -139,6 +139,26 @@ class Printer:
         return answer
 
 
+    def ask_for_delete_mailbox(self, mailboxes):
+        print("Select the mailbox where deleted emails should be stored:")
+
+        choices = []
+        for mailbox in mailboxes:
+            print("{} - {}".format(len(choices)+1, mailbox))
+            choices.append(mailbox)
+
+        print()
+        answer = input()
+
+        while True:
+            if answer in choices:
+                return answer
+
+            if answer.isdigit() and 0 < int(answer) <= len(choices):
+                return choices[int(answer) - 1]
+
+            answer = input("\nSorry, I haven't understood your choice.\n"
+                           "Please try again:\n")
 
 
     def _get_email_content(self, email_msg):
