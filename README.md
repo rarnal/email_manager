@@ -26,7 +26,7 @@ This application will allow you to:
 
 There's probably some other applications that will allow you to do the above
 stuff much faster and easily than my application, but hey it's working and I
-want to share it anyway :)
+want to share it anyway !
 
 On the plus side I found it very interesting to be able to see from who 
 were my biggest spammers.
@@ -39,8 +39,14 @@ package from the standard librairy.
 
 Just clone or download the repository on your computer and launch main.py
 
-You will also need to insert your login information in the config.ini file.
+You will need to insert your login information in the config.ini file.
 Note that you can store several logins in that file.
+
+Once connected, I advise you to run the following command:
+- -b     will list all your available mailboxes and the number of emails in each
+- -ts    will download all emails in your current mailbox and make a summary by sender
+
+Note that the application will automatically log you in the mailbox which contains the most emails
 
 Some technical details on the application itself:
 
