@@ -55,7 +55,7 @@ Content won't be stored in cache and will only be downloaded when reading an ema
 
 ### Slowliness
 
-If like you you need to download or delete several hundreds of emails, it might
+If like me you need to download or delete several thousands of emails, it might
 take some time.
 
 I've made sure to speed up the process where I could but it's far from being
