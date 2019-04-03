@@ -43,7 +43,7 @@ You will need to insert your login information in the config.ini file.
 Note that you can store several logins in that file.
 
 Once connected, I advise you to run the following command:
-- -b     will list all your available mailboxes and the number of emails in each
+- -b     will list all your available mailboxes and the number of emails in each of them
 - -ts    will download all emails in your current mailbox and make a summary by sender
 
 Note that the application will automatically log you in the mailbox which contains the most emails
