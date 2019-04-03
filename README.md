@@ -6,10 +6,10 @@ This small application has been designed with one goal and only one goal:
     **delete emails**
 
 If you are like me:
-    - You have several emails accounts
-    - Some accounts might be _very_ old
-    - You are receiving tons and tons of useless emails
-    - You never clean your emails
+- You have several emails accounts
+- Some accounts might be _very_ old
+- You are receiving tons and tons of useless emails
+- You never clean your emails
 
 But even if you don't need them, those emails are stored somewhere.
 They take space and consumme energy for nothing.
