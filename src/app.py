@@ -206,6 +206,10 @@ class Motor:
                 try:
                     self.parse_answer(answer)
                 except Exception as error:
+                    if 'Errno 32' in str(error):
+                        self.reset()
+                        continue
+
                     print("An unexpected error happened:\n"
                           "{}\n"
                           "If it's related to connections, you can reset them"
