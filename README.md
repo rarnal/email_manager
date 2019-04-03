@@ -12,7 +12,7 @@ If you are like me:
 - You never clean your emails
 
 But even if you don't need them, those emails are stored somewhere.
-They take space and consumme energy for nothing.
+They consumme memory and energy for basically nothing. I thought it would be nice to get rid of them anyway.
 
 So I decided to make a small application to target and delete them easily.
 
