@@ -9,6 +9,7 @@ import email.utils
 from concurrent import futures
 from collections import deque
 import re
+
 # import smtplib
 
 import ssl
@@ -28,10 +29,9 @@ class IMAP_SSL:
         self.current_mailbox = None
         self.delete_mailbox = None
 
-
-    def initialize(self, host_name, port,
-                   email_address, password,
-                   max_conns=10):
+    def initialize(
+        self, host_name, port, email_address, password, max_conns=10
+    ):
         """
         Initialize nb connections to the host and log them in
         """
@@ -43,7 +43,6 @@ class IMAP_SSL:
         self.max_connexions = max_conns
 
         self.connections = self._create_connection(self.max_connexions)
-
 
     def _create_connection(self, nb=1):
         """
@@ -58,17 +57,15 @@ class IMAP_SSL:
 
         return connections
 
-
     def _open_one_connection(self):
         """
         Create and return a new connection instance
         """
-        connection = imaplib.IMAP4_SSL(host=self.host_name,
-                                       port=self.port,
-                                       ssl_context=ssl.SSLContext())
+        connection = imaplib.IMAP4_SSL(
+            host=self.host_name, port=self.port, ssl_context=ssl.SSLContext()
+        )
         self.login(connection)
         return connection
-
 
     def login(self, connections):
         """
@@ -82,8 +79,9 @@ class IMAP_SSL:
         for connection in connections:
 
             while connection.state == "NONAUTH":
-                connection.login(user=self.email_address,
-                                 password=self.password)
+                connection.login(
+                    user=self.email_address, password=self.password
+                )
                 time.sleep(0.1)
 
             while connection.state == "AUTH":
@@ -92,16 +90,14 @@ class IMAP_SSL:
 
         return True
 
-
     def check_connections(self):
         """
         Check if all connections are still functionnal.
         If not, create a new one
         """
         for i, conn in enumerate(self.connections):
-            if conn.check()[0] != 'OK':
+            if conn.check()[0] != "OK":
                 self.connections[i] = self._open_one_connection()
-
 
     def logout(self):
         """
@@ -111,7 +107,6 @@ class IMAP_SSL:
             connection.close()
             connection.logout()
         return True
-
 
     def get_mailboxes(self):
         """
@@ -135,10 +130,10 @@ class IMAP_SSL:
                     # TODO: fix issue we might have if the delete inbox
                     # is not in that DELETE_MAILBOXES list
 
-        self.select_inbox(mailbox=self.current_mailbox,
-                          connections=self.connections[0])
+        self.select_inbox(
+            mailbox=self.current_mailbox, connections=self.connections[0]
+        )
         return boxes
-
 
     def select_inbox(self, mailbox=None, connections=None):
         """
@@ -163,7 +158,6 @@ class IMAP_SSL:
 
         return res[0]
 
-
     def delete_emails_by_sender(self, email_addresses):
         """
         Delete all emails sent from the provided email addresses
@@ -171,9 +165,8 @@ class IMAP_SSL:
         """
         ids = []
         for email_address in email_addresses:
-            ids += self._search('FROM', email_address)[0].split()
+            ids += self._search("FROM", email_address)[0].split()
         self.delete_emails_by_id(ids)
-
 
     def delete_emails_by_id(self, email_ids):
         """
@@ -185,9 +178,11 @@ class IMAP_SSL:
         if not email_ids:
             return None
 
-        bar = ProgressCounter(len(email_ids), "Deleting {} emails"
-                              .format(len(email_ids)),
-                              percentage=True)
+        bar = ProgressCounter(
+            len(email_ids),
+            "Deleting {} emails".format(len(email_ids)),
+            percentage=True,
+        )
         # I haven't been able delete emails by threading
         # Getting a error 32 broken pipe error
         # Processing them one by one might be slow but at least it works
@@ -199,11 +194,9 @@ class IMAP_SSL:
 
         cached = self._get_cached_email_headers()
         cached = [msg for msg in cached if msg.id not in email_ids]
-        self.cache.add(cached,
-                       self.email_address,
-                       self.current_mailbox,
-                       overwrite=True)
-
+        self.cache.add(
+            cached, self.email_address, self.current_mailbox, overwrite=True
+        )
 
     def _delete_one_email(self, email_id):
         """
@@ -211,9 +204,8 @@ class IMAP_SSL:
             moving it to the "delete" mailbox
             flagging it as "deleted"
         """
-        self.connections[0].uid('copy', email_id, self.delete_mailbox)
-        self.connections[0].uid('store', email_id, '+FLAGS', '\\Deleted')
-
+        self.connections[0].uid("copy", email_id, self.delete_mailbox)
+        self.connections[0].uid("store", email_id, "+FLAGS", "\\Deleted")
 
     def _expunge_mailbox(self):
         """
@@ -221,22 +213,19 @@ class IMAP_SSL:
         """
         _, res = self.connections[0].expunge()
 
-
     def get_quota(self):
         """
         Get the memory size current usage and treshold for the whole account
         """
-        _, res = self.connections[0].getquotaroot('inbox')
+        _, res = self.connections[0].getquotaroot("inbox")
         return res
-
 
     def _search(self, *args):
         """
         Execute a search and return the matching email ids
         """
-        _, res = self.connections[0].uid('search', *args)
+        _, res = self.connections[0].uid("search", *args)
         return res
-
 
     def get_last_emails(nb):
         """
@@ -244,7 +233,6 @@ class IMAP_SSL:
         """
 
         self.sele
-
 
     def search_filtered(self, string, filter, errors):
         """
@@ -265,23 +253,22 @@ class IMAP_SSL:
                 cached_emails_filtered.append(cached_email)
                 email_ids.discard(cached_email.id)
 
-        downloaded_emails = self._fetch_emails(email_ids,
-                                               '(RFC822.HEADER)',
-                                               errors)
+        downloaded_emails = self._fetch_emails(
+            email_ids, "(RFC822.HEADER)", errors
+        )
 
-        self.cache.add(downloaded_emails,
-                       self.email_address,
-                       self.current_mailbox)
+        self.cache.add(
+            downloaded_emails, self.email_address, self.current_mailbox
+        )
 
         return downloaded_emails + cached_emails_filtered
-
 
     def get_all_emails(self, errors):
         """
         Return headers of all emails available in the current mailbox.
         Newly downladed emails will be added to the cache
         """
-        email_ids = self._search(None, 'ALL')
+        email_ids = self._search(None, "ALL")
         if not email_ids[0]:
             return None
 
@@ -296,24 +283,22 @@ class IMAP_SSL:
                 email_ids.discard(cached_email.id)
                 to_return.append(cached_email)
 
-        downloaded_emails = self._fetch_emails(email_ids,
-                                               '(RFC822.HEADER)',
-                                               errors)
+        downloaded_emails = self._fetch_emails(
+            email_ids, "(RFC822.HEADER)", errors
+        )
 
-        self.cache.add(downloaded_emails,
-                       self.email_address,
-                       self.current_mailbox)
+        self.cache.add(
+            downloaded_emails, self.email_address, self.current_mailbox
+        )
 
         return downloaded_emails + to_return
-
 
     def get_selected_emails(self, ids, errors):
         """
         Download full content of provided email ids
         """
-        downloaded_emails = self._fetch_emails(ids, '(RFC822)', errors)
+        downloaded_emails = self._fetch_emails(ids, "(RFC822)", errors)
         return downloaded_emails
-
 
     def _get_cached_email_headers(self):
         """
@@ -321,7 +306,6 @@ class IMAP_SSL:
         """
         emails = self.cache.load(self.email_address, self.current_mailbox)
         return emails
-
 
     def _fetch_emails(self, email_ids, formatting, errors):
         """
@@ -341,15 +325,13 @@ class IMAP_SSL:
 
         return self._parse_emails(raw_emails, errors)
 
-
     def _download_emails(self, email_ids, formatting, errors):
         """
         Asynchronously download emails contained in email_ids.
         """
         out = []
         log.info("Processing {} emails...".format(len(email_ids)))
-        bar = ProgressCounter(total=len(email_ids),
-                              name="Downloading emails")
+        bar = ProgressCounter(total=len(email_ids), name="Downloading emails")
 
         with futures.ThreadPoolExecutor(len(self.connections)) as executor:
 
@@ -375,7 +357,6 @@ class IMAP_SSL:
 
         return out
 
-
     def _parse_emails(self, raw_emails, errors):
         """
         Synchronously parse a bunch of emails
@@ -395,7 +376,6 @@ class IMAP_SSL:
 
         return parsed_emails
 
-
     def _fetch_one_email(self, email_id, formatting):
         """
         Download an email and return its raw content.
@@ -403,7 +383,7 @@ class IMAP_SSL:
         might change over time, while the IDs we get from uid are permanent
         """
         with OpenConn(self.connections) as connection:
-            _, email_raw = connection.uid('fetch', email_id, formatting)
+            _, email_raw = connection.uid("fetch", email_id, formatting)
             if not email_raw[0]:
                 return False
             email_raw = (email_id, email_raw[0][1])
@@ -414,19 +394,15 @@ class IMAP_SSL:
 
         return email_raw
 
-
     def _parse_email(self, email_id, email_raw):
         """
         Parse the content of an email.
         The email id will be attached to the returned Email object
         """
-        parsed_email = email.parser \
-                            .BytesParser() \
-                            .parsebytes(email_raw)
+        parsed_email = email.parser.BytesParser().parsebytes(email_raw)
 
         parsed_email = self._transform_parsed_email(email_id, parsed_email)
         return parsed_email
-
 
     def _transform_parsed_email(self, email_id, parsed_email):
         """
@@ -444,35 +420,35 @@ class IMAP_SSL:
         # issue to dig: sometime the parser_email['From'] is not an str
         # making sure it's actually an string prevent some errors to happen
         # while parsing the header
-        temp = email.utils.parseaddr(str(parsed_email['From']))
+        temp = email.utils.parseaddr(str(parsed_email["From"]))
         transformed_email.sender = temp[1]
 
-        temp = email.utils.parseaddr(str(parsed_email['To']))
+        temp = email.utils.parseaddr(str(parsed_email["To"]))
         transformed_email.receiver = temp[1]
 
-        temp = email.utils.parseaddr(str(parsed_email['Cc']))
+        temp = email.utils.parseaddr(str(parsed_email["Cc"]))
         transformed_email.cc = temp[1]
 
-        temp = email.utils.parseaddr(str(parsed_email['Bcc']))
+        temp = email.utils.parseaddr(str(parsed_email["Bcc"]))
         transformed_email.bcc = temp[1]
 
-        temp = email.utils.parsedate_to_datetime(parsed_email['Date'])
+        temp = email.utils.parsedate_to_datetime(parsed_email["Date"])
         temp = temp.replace(tzinfo=None)
         transformed_email.date = temp
 
         try:
-            temp = email.header.decode_header(parsed_email['Subject'])
+            temp = email.header.decode_header(parsed_email["Subject"])
         except TypeError:
-            if parsed_email['Subject']:
-                temp = parsed_email['Subject']
+            if parsed_email["Subject"]:
+                temp = parsed_email["Subject"]
             else:
-                temp = ''
+                temp = ""
         else:
             temp = temp[0][0]
             if isinstance(temp, bytes):
-                temp = temp.decode(errors='replace')
+                temp = temp.decode(errors="replace")
             if not isinstance(temp, (bytes, str)):
-                temp = ''
+                temp = ""
 
         transformed_email.subject = temp
 
@@ -481,7 +457,6 @@ class IMAP_SSL:
 
         return transformed_email
 
-
     def _get_email_content(self, parsed_email):
         """
         Parse an email content through the payload function
@@ -489,18 +464,17 @@ class IMAP_SSL:
         """
         type_ = parsed_email.get_content_maintype()
 
-        if type_ == 'text' and parsed_email.get_content_subtype() == 'plain':
-                return parsed_email.get_payload(decode=True)
-        elif 'image' in type_:
+        if type_ == "text" and parsed_email.get_content_subtype() == "plain":
+            return parsed_email.get_payload(decode=True)
+        elif "image" in type_:
             return b" [IMAGE] "
-        elif 'multipart' in type_:
-            content = b''
+        elif "multipart" in type_:
+            content = b""
             for part in parsed_email.get_payload():
                 content += self._get_email_content(part)
             return content
         else:
-            return b''
-
+            return b""
 
 
 class Email:
@@ -508,6 +482,7 @@ class Email:
     Custom Email class.
     Lighter, easier, and only contain the stuff I need to use for caching
     """
+
     def __init__(self):
         self.id = None
         self.sender = None
@@ -518,7 +493,6 @@ class Email:
         self.subject = None
         self.content = None
         self.size = None
-
 
     def __eq__(self, other):
         if isinstance(other, int):
@@ -532,22 +506,21 @@ class Email:
         else:
             raise NotImplementedError
 
-
     def __str__(self):
-        print('id', self.id)
-        print('sender', self.sender)
-        print('date', self.date)
-        print('subject', self.subject)
-        print('content', self.content.decode())
-        return ''
+        print("id", self.id)
+        print("sender", self.sender)
+        print("date", self.date)
+        print("subject", self.subject)
+        print("content", self.content.decode())
+        return ""
 
 
-
-class OpenConn():
+class OpenConn:
     """
     Context manager class for threading and being sure a connection instance
     won't be use by several workers
     """
+
     def __init__(self, conn):
         self.conn = conn
 
@@ -557,4 +530,3 @@ class OpenConn():
 
     def __exit__(self, here, there, that):
         self.conn.appendleft(self.connection)
-

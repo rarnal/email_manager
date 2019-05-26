@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.7
+
 from src import helpers
 from src import app
 
@@ -9,7 +11,5 @@ def main():
     application.run()
 
 
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -8,7 +8,7 @@ def get_config(source=None):
     """
 
     if not source:
-        source = 'config.ini'
+        source = "config.ini"
 
     if not os.path.exists(source):
         raise ValueError("The file config.ini could not be found")
@@ -18,7 +18,6 @@ def get_config(source=None):
     return config
 
 
-
 def sort_emails_by_date(emails_list):
     sorted_emails = sorted(emails_list, key=lambda msg: msg.date, reverse=True)
     return sorted_emails
@@ -26,5 +25,3 @@ def sort_emails_by_date(emails_list):
 
 def get_max_sender_size(emails_list):
     return len(max(emails_list, key=lambda msg: len(msg.sender)).sender)
-
-
