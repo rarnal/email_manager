@@ -188,7 +188,7 @@ class Printer:
         size_email = len(max(data, key=len))
 
         titles = formatter.format(
-            id='Index', sender="From", count="Count", size_email=size_email
+            id="Index", sender="From", count="Count", size_email=size_email
         )
 
         top_senders = data.most_common(top)
