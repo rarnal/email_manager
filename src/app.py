@@ -223,6 +223,12 @@ class Motor:
         and available in current mailbox
         """
         self.look_for_delete_mailboxes()
+
+        if all(email.isdigit() for email in email_addresses):
+            email_addresses = [self.last_search[int(ind)-1][0]
+                               for ind in email_addresses]
+            print(email_addresses)
+
         self.email.delete_emails_by_sender(email_addresses)
 
     def delete_emails_by_id(self, email_ids):

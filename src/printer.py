@@ -183,22 +183,22 @@ class Printer:
     def summary_by_top_senders(self, data, top=10):
         data = self.group_email_by_sender(data)
 
-        formatter = "{count:>5} | {sender:{size_email}}"
+        formatter = "{id:>5} | {count:>5} | {sender:{size_email}}"
 
         size_email = len(max(data, key=len))
 
         titles = formatter.format(
-            sender="From", count="Count", size_email=size_email
+            id='Index', sender="From", count="Count", size_email=size_email
         )
 
         top_senders = data.most_common(top)
 
         print()
         print(titles)
-        for sender, total in top_senders:
+        for i, (sender, total) in enumerate(top_senders, 1):
             print(
                 formatter.format(
-                    sender=sender, count=total, size_email=size_email
+                    id=i, sender=sender, count=total, size_email=size_email
                 )
             )
         print()
